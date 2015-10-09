@@ -26,7 +26,7 @@
     Aborts runtime with location and _error
     text if called.
 -----------------------------------------------*/
-#define FatalError(_error)                            \
+#define itrnlFatalError(_error)                            \
 {                                                     \
     std::stringstream _location,_message;             \
     _location << __FILE__ << ":" << __LINE__;         \
@@ -36,25 +36,6 @@
               << _message.str() << "\n"               \
               << "Aborting!" << "\n";                 \
     exit(EXIT_FAILURE);                               \
-};
-
-/*----------------------------------------------
-                 Check Arguments
-    Checks for if an input is null and gives
-    the proper syntax for launching the program
-    if called, then calls fatal passing it the
-    error string.
------------------------------------------------*/
-#define checkArgs(_args)                                     \
-{                                                            \
-    if(_args==NULL)                                          \
-    {                                                        \
-        std::stringstream _error;                            \
-        _error << "Invalid arguments\n";                     \
-        _error << "Proper Syntax: ";                         \
-        _error << " DNNTSBuilder [inputfile] [outputfile]\n";\
-        FatalError(_error);                                  \
-    }                                                        \
 };
 
 /*----------------------------------------------
@@ -68,7 +49,7 @@
     {                                                        \
         std::stringstream _error;                            \
         _error << std::string(_errchk);                      \
-        FatalError(_error);                                  \
+        itrnlFatalError(_error);                                  \
     }                                                        \
 };
 
@@ -77,7 +58,7 @@
     Pass the macro a char string with an error
     and throw a std::string exception.
 -----------------------------------------------*/
-#define throwException(_errstr)                              \
+#define itrnlThrowException(_errstr)                              \
 {                                                            \
     if (!std::string(_errstr).empty())                       \
     {                                                        \
@@ -89,9 +70,12 @@
 };
 
 // Random
-#include "../utils/randnormflt.h"
+#include "randnormflt.h"
 #include <fstream>
 #include <regex>
+
+// GLM Vector Math
+#include <glm/glm.hpp>
 
 namespace itrnl {
 
@@ -191,6 +175,32 @@ inline dhlindex CreateDihedralIndex(const int v1,const int v2,const int v3,const
     return tmpidx;
 };
 
+/*--------Internal Coordinates Type----------
+
+
+This type stores the indexes for the bonds,
+angles and dihedrals along with the values
+of the coordinates and types of atoms in
+the molecule.
+----------------------------------------------*/
+class t_iCoords {
+public:
+    std::vector<bndindex> bidx; // Bonding index
+    std::vector<angindex> aidx; // Angle index
+    std::vector<dhlindex> didx; // Dihedral index
+
+    std::vector<std::string> type; // Atom Types
+
+    std::vector<float> bnds; // Storage for bonds
+    std::vector<float> angs; // Storage for angles
+    std::vector<float> dhls; // Storage for dihedrals
+
+    void clear () {
+        bidx.clear();aidx.clear();didx.clear();
+        type.clear();
+        bnds.clear();angs.clear();dhls.clear();
+    };
+};
 
 /*--------Internal Coordinates Class----------
 
@@ -199,19 +209,8 @@ This class stores the indexes for the bonds,
 angles and dihedrals of the molecule.
 ----------------------------------------------*/
 class Internalcoordinates {
-    std::vector<bndindex> bidx; // Bonding index
-    std::vector<angindex> aidx; // Angle index
-    std::vector<dhlindex> didx; // Dihedral index
 
-    std::vector<std::string> type; // Atom Types
-
-    std::vector<float> bnds; // Working storage for bonds
-    std::vector<float> angs; // Working storage for angles
-    std::vector<float> dhls; // Working storage for dihedrals
-
-    std::vector<float> ibnds; // Storage Initial Struct for bonds
-    std::vector<float> iangs; // Storage Initial Struct for angles
-    std::vector<float> idhls; // Storage Initial Struct for dihedrals
+    t_iCoords iic; // Initial Internal Coordinates
 
     unsigned cnt;
 
@@ -251,10 +250,7 @@ class Internalcoordinates {
     std::string m_createCSVICstring(const std::vector<glm::vec3> &xyz);
 
     // Calculate the values for the internal coords based on xyz input
-    void m_calculateInternalCoordinates(const std::vector<glm::vec3> &xyz);
-
-    // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
-    void m_generateRandomIntrlStruct(RandomReal &rnGen);
+    void m_setInternalCoordinatesFromXYZ(const std::vector<glm::vec3> &xyz);
 
 public:
 
@@ -268,12 +264,7 @@ public:
             m_calculateAngleIndex();
             m_calculateDihedralIndex();
 
-            /* Allocate working memory */
-            bnds.resize(bidx.size());
-            angs.resize(aidx.size());
-            dhls.resize(didx.size());
-
-        } catch (std::string error) dnntsErrorcatch(error);
+        } catch (std::string error) itrnlErrorcatch(error);
     };
 
     // Class index and initial iternals constructor
@@ -284,20 +275,10 @@ public:
             m_calculateAngleIndex();
             m_calculateDihedralIndex();
 
-            /* Allocate working IC memory */
-            bnds.resize(bidx.size());
-            angs.resize(aidx.size());
-            dhls.resize(didx.size());
-
-            /* Allocate Initial  IC memory */
-            ibnds.resize(bidx.size());
-            iangs.resize(aidx.size());
-            idhls.resize(didx.size());
-
             /* Calculate and store the initial IC */
-            m_calculateInternalCoordinates(ixyz);
+            m_setInternalCoordinatesFromXYZ(ixyz);
 
-        } catch (std::string error) dnntsErrorcatch(error);
+        } catch (std::string error) itrnlErrorcatch(error);
     };
 
     // Class index and initial iternals constructor
@@ -310,55 +291,40 @@ public:
             m_getAngleIndex(icoords);
             m_getDihedralIndex(icoords);
 
-            /* Allocate working IC memory */
-            bnds.resize(bidx.size());
-            angs.resize(aidx.size());
-            dhls.resize(didx.size());
-
-            /* Allocate Initial  IC memory */
-            ibnds.resize(bidx.size());
-            iangs.resize(aidx.size());
-            idhls.resize(didx.size());
-
-            /* Calculate and store the initial IC */
-            //m_calculateInternalCoordinates(ixyz);
-
-        } catch (std::string error) dnntsErrorcatch(error);
+        } catch (std::string error) itrnlErrorcatch(error);
     };
 
     // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
     std::string calculateCSVInternalCoordinates(const std::vector<glm::vec3> &xyz);
 
     // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
-    std::string getCSVStringWithIC(const std::vector<float> &ic);
-
-    // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
-    void generateRandomZMat(std::vector< std::vector<float> > &ic,std::vector<std::string> &zmats,RandomReal &rnGen);
+    t_iCoords generateRandomICoords(RandomReal &rnGen);
 
     // Data Printer
     void printdata() {
-        std::cout << "Internal Coordinates" << std::endl;
-        std::cout << "Bonds: " << bidx.size() << std::endl;
-        std::cout << "Angles: " << aidx.size() << std::endl;
-        std::cout << "Dihedrals: " << didx.size() << std::endl;
+        std::cout << "Internal Coordinates Class Setup" << std::endl;
+        std::cout << "Bonds: " << iic.bidx.size() << std::endl;
+        std::cout << "Angles: " << iic.aidx.size() << std::endl;
+        std::cout << "Dihedrals: " << iic.didx.size() << std::endl;
         std::cout << std::endl;
     };
 
+    t_iCoords& getiCoords() {
+        return iic;
+    }
+
     // Destructor
     ~Internalcoordinates() {
-        bidx.clear();
-        aidx.clear();
-        didx.clear();
-
-        bnds.clear();
-        angs.clear();
-        dhls.clear();
-
-        ibnds.clear();
-        iangs.clear();
-        idhls.clear();
+        iic.clear();
     };
 };
+
+// Produce a Z-mat string from input internal coordinates
+extern void iCoordToZMat(const t_iCoords &ics,std::string &zmats);
+
+// Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
+extern std::string getCsvICoordStr(const t_iCoords &ics);
+
 
 };
 #endif
