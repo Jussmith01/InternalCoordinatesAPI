@@ -14,8 +14,8 @@
 //      *************************************************************     //
 /* Check for sufficient compiler version */
 #if defined(__GNUC__) || defined(__GNUG__)
-    #if !(__GNUC__ >= 4 && __GNUC_MINOR__ >= 8)
-        #error "Insufficient GNU Compiler Version -- 4.8 or greater required"
+    #if !(__GNUC__ >= 4 && __GNUC_MINOR__ >= 9)
+        #error "Insufficient GNU compiler version to install this library-- 4.9 or greater required"
     #endif
 #else
     #warning "Currently only GNU compilers are supported and tested, but go ahead if you know what you're doing."
@@ -73,9 +73,11 @@
 #include "randnormflt.h"
 #include <fstream>
 #include <regex>
+#include <utility>
 
 // GLM Vector Math
 #include <glm/glm.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 
 namespace itrnl {
 
@@ -202,6 +204,45 @@ public:
     };
 };
 
+/*--------Internal Coordinates RandRng----------
+
+
+This type stores the Ranges of the random
+purturbations of the IC.
+
+----------------------------------------------*/
+class t_ICRandRng {
+
+    bool rset;
+
+    std::vector< std::pair<float,float> > rngb; // Range of bonds
+    std::vector< std::pair<float,float> > rnga; // Range of angles
+    std::vector< std::pair<float,float> > rngd; // Range of dihedrals
+
+public:
+
+    t_ICRandRng () :
+        rset(false)
+    {};
+
+    // Returns true if the range values are set.
+    bool isset() {return rset;};
+
+    // Const Access Functions
+    const std::pair<float,float>& getRngBnd(unsigned i) {return rngb[i];};
+    const std::pair<float,float>& getRngAng(unsigned i) {return rnga[i];};
+    const std::pair<float,float>& getRngDhl(unsigned i) {return rngd[i];};
+
+    // Function for defining the random ranges
+    void setRandomRanges (std::vector< std::string > &rngin);
+
+    void clear () {
+        rnga.clear();
+        rngb.clear();
+        rngd.clear();
+    };
+};
+
 /*--------Internal Coordinates Class----------
 
 
@@ -211,11 +252,10 @@ angles and dihedrals of the molecule.
 class Internalcoordinates {
 
     t_iCoords iic; // Initial Internal Coordinates
+    t_ICRandRng rrg; // Random Range Container
 
-    unsigned cnt;
 
-    //Internalcoordinates () {}; // Private default constructor
-
+    /** Member Fucntions **/
     // Calculate the bonding index
     void m_calculateBondIndex(const std::vector< glm::ivec2 > &mbond);
 
@@ -255,9 +295,7 @@ class Internalcoordinates {
 public:
 
     // Class index constructor
-    Internalcoordinates (const std::vector< glm::ivec2 > &mbond) :
-        cnt(0)
-    {
+    Internalcoordinates (const std::vector< glm::ivec2 > &mbond) {
         try {
             /* Determing Internal Coords */
             m_calculateBondIndex(mbond);
@@ -282,8 +320,7 @@ public:
     };
 
     // Class index and initial iternals constructor
-    Internalcoordinates (const std::vector< std::string > &icoords) :
-        cnt(0) {
+    Internalcoordinates (const std::vector< std::string > &icoords) {
         try {
             /* Determing (IC) Internal Coords Index */
             m_getAtomTypes(icoords);
@@ -297,7 +334,7 @@ public:
     // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
     std::string calculateCSVInternalCoordinates(const std::vector<glm::vec3> &xyz);
 
-    // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
+    // Generate a random structure
     t_iCoords generateRandomICoords(RandomReal &rnGen);
 
     // Data Printer
@@ -313,6 +350,10 @@ public:
         return iic;
     }
 
+    t_ICRandRng& getRandRng() {
+        return rrg;
+    }
+
     // Destructor
     ~Internalcoordinates() {
         iic.clear();
@@ -325,6 +366,7 @@ extern void iCoordToZMat(const t_iCoords &ics,std::string &zmats);
 // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
 extern std::string getCsvICoordStr(const t_iCoords &ics);
 
-
+// Convert internal coordinates to XYZ
+extern void iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz);
 };
 #endif
