@@ -39,7 +39,35 @@ void itrnl::t_ICRandRng::setRandomRanges(std::vector< std::string > &rngin) {
         } else if (std::regex_search(i,m,patt_rrngd)) {
             rngd.push_back(std::pair<float,float>(atof(m.str(2).c_str()),atof(m.str(3).c_str())));
         } else {
-            itrnlThrowException("A random range line does not match any expected syntax. Check the input.");
+            itrnlThrowException("A random range line does not match the expected syntax. Check the input.");
+        }
+    };
+};
+
+/****************************************
+
+    itrnl::t_ICRandRng functions
+
+*****************************************/
+void itrnl::t_ICScanRng::setScanRanges(std::vector< std::string > &rngin) {
+    sset=true;
+
+    std::regex patt_rrngb("([B])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s+([-+]?[0-9]*\\.?[0-9]+)");
+    std::regex patt_rrnga("([A])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s+([-+]?[0-9]*\\.?[0-9]+)");
+    std::regex patt_rrngd("([D])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s+([-+]?[0-9]*\\.?[0-9]+)");
+
+    for (auto && i : rngin) {
+        std::smatch m;
+
+        // Bond Matching
+        if        (std::regex_search(i,m,patt_rrngb)) {
+            rngb.push_back(std::pair<float,float>(atof(m.str(2).c_str()),atof(m.str(3).c_str())));
+        } else if (std::regex_search(i,m,patt_rrnga)) {
+            rnga.push_back(std::pair<float,float>(atof(m.str(2).c_str()),atof(m.str(3).c_str())));
+        } else if (std::regex_search(i,m,patt_rrngd)) {
+            rngd.push_back(std::pair<float,float>(atof(m.str(2).c_str()),atof(m.str(3).c_str())));
+        } else {
+            itrnlThrowException("A scan range line does not match the expected syntax. Check the input.");
         }
     };
 };
@@ -339,6 +367,43 @@ itrnl::t_iCoords itrnl::Internalcoordinates::generateRandomICoords(RandomReal &r
         }
     } else {
         itrnlThrowException("Random range class is not set!");
+    }
+
+    return oic;
+};
+
+/*------Generate a scan IC Struct--------
+
+Generate a scan IC structure based upon
+initial. Store in the working IC vectors.
+
+------------------------------------------*/
+itrnl::t_iCoords itrnl::Internalcoordinates::generateScanICoords() {
+    t_iCoords oic(iic); // Copy the classes initial coords
+
+    if (srg.isset()) {
+        unsigned inc = srg.getCounter();
+
+        for (unsigned i=0; i<iic.bnds.size(); ++i) {
+            float fst = srg.getRngBnd(i).first;
+            float sec = srg.getRngBnd(i).second;
+            oic.bnds[i] = iic.bnds[i] - sec + inc * fst;
+        }
+;
+
+        for (unsigned i=0; i<iic.angs.size(); ++i) {
+            float fst = srg.getRngAng(i).first;
+            float sec = srg.getRngAng(i).second;
+            oic.angs[i] = iic.angs[i] - sec + inc * fst;
+        }
+
+        for (unsigned i=0; i<iic.dhls.size(); ++i) {
+            float fst = srg.getRngDhl(i).first;
+            float sec = srg.getRngDhl(i).second;
+            oic.dhls[i] = iic.dhls[i] - sec + inc * fst;
+        }
+    } else {
+        itrnlThrowException("Scan range class is not set!");
     }
 
     return oic;
