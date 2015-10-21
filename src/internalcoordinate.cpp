@@ -389,7 +389,7 @@ itrnl::t_iCoords itrnl::Internalcoordinates::generateScanICoords() {
             float sec = srg.getRngBnd(i).second;
             oic.bnds[i] = iic.bnds[i] - sec + inc * fst;
         }
-;
+        ;
 
         for (unsigned i=0; i<iic.angs.size(); ++i) {
             float fst = srg.getRngAng(i).first;
@@ -458,19 +458,31 @@ Returns a string of the Internal Coordinates
 pended.
 
 ------------------------------------------*/
-std::string itrnl::getCsvICoordStr(const t_iCoords &ics) {
+std::string itrnl::getCsvICoordStr(const t_iCoords &ics,std::string units) {
     std::stringstream icstr;
     icstr << ics.bnds.size() << "," << ics.angs.size() << "," << ics.dhls.size() << ",";
     icstr.setf( std::ios::scientific, std::ios::floatfield );
 
-    for (auto&& i : ics.bnds)
-        icstr << std::setprecision(7) << i << ",";
+    if (units.compare("radians")==0) {
+        for (auto&& i : ics.bnds)
+            icstr << std::setprecision(7) << i << ",";
 
-    for (auto&& i : ics.angs)
-        icstr << std::setprecision(7) << i << ",";
+        for (auto&& i : ics.angs)
+            icstr << std::setprecision(7) << glm::radians(i) << ",";
 
-    for (auto&& i : ics.dhls)
-        icstr << std::setprecision(7) << i << ",";
+        for (auto&& i : ics.dhls)
+            icstr << std::setprecision(7) << glm::radians(i) << ",";
+    } else {
+        for (auto&& i : ics.bnds)
+            icstr << std::setprecision(7) << i << ",";
+
+        for (auto&& i : ics.angs)
+            icstr << std::setprecision(7) << i << ",";
+
+        for (auto&& i : ics.dhls)
+            icstr << std::setprecision(7) << i << ",";
+    }
+
 
     //std::string rtn(icstr.str());
 
@@ -511,7 +523,7 @@ void itrnl::iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz) {
     else
         xyz.push_back(glm::rotate(xyztmp,-glm::radians(ics.angs[0]),glm::vec3(0.0,0.0,1.0)) * ics.bnds[1] + xyz[ics.aidx[0].v1-1]);
 
-  for (unsigned i=3;i<ics.bnds.size()+1;++i) {
+    for (unsigned i=3; i<ics.bnds.size()+1; ++i) {
         //std::cout << ics.didx[i-3].v3-1 << std::endl;
         //std::cout << ics.didx[i-3].v1-1 << std::endl;
         if (ics.angs[i-2] > 180.0 || ics.angs[i-2] < 0.0) {
