@@ -50,6 +50,7 @@
 		<Compiler>
 			<Add option="-std=c++11" />
 			<Add option="-Wall" />
+			<Add directory="include" />
 		</Compiler>
 		<Unit filename="src/internalcoordinate.cpp" />
 		<Unit filename="src/internalcoordinate.h" />

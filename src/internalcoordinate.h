@@ -76,6 +76,7 @@
 #include <utility>
 
 // GLM Vector Math
+//#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
@@ -243,6 +244,53 @@ public:
     };
 };
 
+/*--------Internal Coordinates RandRng----------
+
+
+This type stores the Ranges of the random
+purturbations of the IC.
+
+----------------------------------------------*/
+class t_ICScanRng {
+
+    bool sset;
+    unsigned scnt;
+
+    std::vector< std::pair<float,float> > rngb; // Range of bonds
+    std::vector< std::pair<float,float> > rnga; // Range of angles
+    std::vector< std::pair<float,float> > rngd; // Range of dihedrals
+
+public:
+
+    t_ICScanRng () :
+        sset(false),scnt(0)
+    {};
+
+    // Returns true if the range values are set.
+    bool isset() {return sset;};
+
+    // Returns the scan counter and increment it by one.
+    unsigned getCounter() {
+        unsigned tmp(scnt);
+        ++scnt;
+        return tmp;
+    };
+
+    // Const Access Functions
+    const std::pair<float,float>& getRngBnd(unsigned i) {return rngb[i];};
+    const std::pair<float,float>& getRngAng(unsigned i) {return rnga[i];};
+    const std::pair<float,float>& getRngDhl(unsigned i) {return rngd[i];};
+
+    // Function for defining the scan ranges
+    void setScanRanges (std::vector< std::string > &scnin);
+
+    void clear () {
+        rnga.clear();
+        rngb.clear();
+        rngd.clear();
+    };
+};
+
 /*--------Internal Coordinates Class----------
 
 
@@ -253,6 +301,7 @@ class Internalcoordinates {
 
     t_iCoords iic; // Initial Internal Coordinates
     t_ICRandRng rrg; // Random Range Container
+    t_ICScanRng srg; // Scan Range Container
 
 
     /** Member Fucntions **/
@@ -337,6 +386,9 @@ public:
     // Generate a random structure
     t_iCoords generateRandomICoords(RandomReal &rnGen);
 
+    // Generate a random structure
+    t_iCoords generateScanICoords();
+
     // Data Printer
     void printdata() {
         std::cout << "Internal Coordinates Class Setup" << std::endl;
@@ -352,6 +404,10 @@ public:
 
     t_ICRandRng& getRandRng() {
         return rrg;
+    }
+
+    t_ICScanRng& getScanRng() {
+        return srg;
     }
 
     // Destructor
