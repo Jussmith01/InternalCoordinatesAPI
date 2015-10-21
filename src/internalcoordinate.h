@@ -420,7 +420,7 @@ public:
 extern void iCoordToZMat(const t_iCoords &ics,std::string &zmats);
 
 // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
-extern std::string getCsvICoordStr(const t_iCoords &ics,std::string units="Degrees");
+extern std::string getCsvICoordStr(const t_iCoords &ics);
 
 // Convert internal coordinates to XYZ
 extern void iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz);
