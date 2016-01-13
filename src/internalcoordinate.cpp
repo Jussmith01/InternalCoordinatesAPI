@@ -108,6 +108,9 @@ void itrnl::Internalcoordinates::m_calculateBondIndex(const std::vector< glm::iv
 
     // Sort by the first element from lowest to highest
     std::sort(iic.bidx.begin(),iic.bidx.end(),itrnl::bndComparelt);
+    for (auto & i : iic.bidx) {
+        std::cout << "[" << i.v1 << "," << i.v2 << "]" << std::endl;
+    }
 };
 
 /*---------Calculate the Angle index-----------

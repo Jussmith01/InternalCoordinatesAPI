@@ -16,29 +16,47 @@
 int main(int argc, char *argv[]) {
     using namespace itrnl;
     std::vector< glm::ivec2 > bndidx =
-        {glm::ivec2(1,2)
-        ,glm::ivec2(1,3)
-        ,glm::ivec2(1,4)
+        {glm::ivec2(0,1)
+        ,glm::ivec2(0,2)
+        ,glm::ivec2(0,4)
+        ,glm::ivec2(2,5)
         ,glm::ivec2(3,6)
-        ,glm::ivec2(4,7)
+        ,glm::ivec2(3,7)
+        ,glm::ivec2(3,4)
         ,glm::ivec2(4,8)
-        ,glm::ivec2(4,5)
-        ,glm::ivec2(5,9)
-        ,glm::ivec2(5,10)};
+        ,glm::ivec2(4,9)};
 
     std::vector<glm::vec3> xyz =
-        {glm::vec3(0.0000,0.5519,0.0000)
-        ,glm::vec3(1.1805,0.8224,0.0000)
-        ,glm::vec3(-0.9734,1.4951,0.0000)
-        ,glm::vec3(-0.5804,-0.8589,0.0000)
-        ,glm::vec3(0.3994,-1.9298,0.0000)
-        ,glm::vec3(	-0.5187,2.3588,0.0000)
-        ,glm::vec3(	-1.2368,-0.9540,0.8740)
-        ,glm::vec3(-1.2368,-0.9540,-0.8740)
-        ,glm::vec3(	1.0113,-1.8200,0.8075)
-        ,glm::vec3(	1.0113,-1.8200,-0.8075)};
+        {glm::vec3(0.0000,0.7671,0.0000)
+        ,glm::vec3(0.0000	-0.7671	0.0000)
+        ,glm::vec3(-1.4078	1.3718	0.0000)
+        ,glm::vec3()
+        ,glm::vec3()
+        ,glm::vec3()
+        ,glm::vec3()
+        ,glm::vec3()
+        ,glm::vec3()
+        ,glm::vec3()
+        ,glm::vec3()
+        ,glm::vec3()
+        ,glm::vec3()
+        ,glm::vec3()};
 
-    std::vector<std::string> type({"C","O","O","C","N","H","H","H","H","H"});
+    std::vector<std::string> type({
+                             "C" /*1*/
+                            ,"C" /*2*/
+                            ,"C" /*3*/
+                            ,"C" /*4*/
+                            ,"H" /*5*/
+                            ,"H" /*6*/
+                            ,"H" /*7*/
+                            ,"H" /*8*/
+                            ,"H" /*9*/
+                            ,"H" /*10*/
+                            ,"H" /*11*/
+                            ,"H" /*12*/
+                            ,"H" /*13*/
+                            ,"H" /*14*/ });
 
     Internalcoordinates icrds(bndidx,xyz,type);
 
@@ -48,8 +66,14 @@ int main(int argc, char *argv[]) {
 
     std::string zmat;
     iCoordToZMat(icrds.getiCoords(),zmat);
-
     std::cout << zmat << std::endl;
+
+    std::vector<glm::vec3> xyzf;
+    iCoordToXYZ(icrds.getiCoords(),xyzf);
+    std::cout << "COORDINATES:" << std::endl;
+    for (auto && i : xyzf) {
+        std::cout << "[" << i.x << "," << i.y << "," << i.z << "]" << std::endl;
+    }
 
     //std::vector<int> seeds = {822650048,8938205,51381752,90742112};
     //RandomReal reng(seeds,0.0f,1.0f,std::string("uniform"));
