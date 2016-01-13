@@ -319,7 +319,7 @@ Calculates internal coordinates of an xyz input
 based on stored Internal Coordinate (IC) index.
 
 ------------------------------------------*/
-void itrnl::Internalcoordinates::m_setInternalCoordinatesFromXYZ(const std::vector<glm::vec3> &xyz) {
+void itrnl::Internalcoordinates::m_setInternalCoordinatesFromXYZ(const std::vector<glm::vec3> &xyz,const std::vector<std::string> &type) {
     try {
         // These Functions fill the t_iCoords iic class member variable
         // with the bonds, angles and dihedrals from the varibles
@@ -327,6 +327,8 @@ void itrnl::Internalcoordinates::m_setInternalCoordinatesFromXYZ(const std::vect
         m_calculateBonds(xyz);
         m_calculateAngles(xyz);
         m_calculateDihedrals(xyz);
+
+        iic.type = type;
 
     } catch (std::string error) itrnlErrorcatch(error);
 };
@@ -516,35 +518,36 @@ void itrnl::iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz) {
 
     //std::cout << ics.aidx[0].v2-1 << " " << ics.aidx[0].v1-1 << std::endl;
 
-    glm::vec3 xyztmp = glm::normalize(glm::vec3(xyz[ics.aidx[0].v2-1] - xyz[ics.aidx[0].v1-1]));
-    //printv3ToStr("Tvec:",xyztmp);
-    if (xyztmp.x > 0)
-        xyz.push_back(glm::rotate(xyztmp,-glm::radians(ics.angs[0]),glm::vec3(0.0,0.0,1.0)) * ics.bnds[1] + xyz[ics.aidx[0].v1-1]);
-    else
-        xyz.push_back(glm::rotate(xyztmp,-glm::radians(ics.angs[0]),glm::vec3(0.0,0.0,1.0)) * ics.bnds[1] + xyz[ics.aidx[0].v1-1]);
+    if (ics.type.size() > 2) {
+        glm::vec3 xyztmp = glm::normalize(glm::vec3(xyz[ics.aidx[0].v2-1] - xyz[ics.aidx[0].v1-1]));
+        //printv3ToStr("Tvec:",xyztmp);
+        if (xyztmp.x > 0)
+            xyz.push_back(glm::rotate(xyztmp,-glm::radians(ics.angs[0]),glm::vec3(0.0,0.0,1.0)) * ics.bnds[1] + xyz[ics.aidx[0].v1-1]);
+        else
+            xyz.push_back(glm::rotate(xyztmp,-glm::radians(ics.angs[0]),glm::vec3(0.0,0.0,1.0)) * ics.bnds[1] + xyz[ics.aidx[0].v1-1]);
 
-    for (unsigned i=3; i<ics.bnds.size()+1; ++i) {
-        //std::cout << ics.didx[i-3].v3-1 << std::endl;
-        //std::cout << ics.didx[i-3].v1-1 << std::endl;
-        if (ics.angs[i-2] > 180.0 || ics.angs[i-2] < 0.0) {
-            itrnlThrowException("Angle outside of bounds!");
+        for (unsigned i=3; i<ics.bnds.size()+1; ++i) {
+            //std::cout << ics.didx[i-3].v3-1 << std::endl;
+            //std::cout << ics.didx[i-3].v1-1 << std::endl;
+            if (ics.angs[i-2] > 180.0 || ics.angs[i-2] < 0.0) {
+                itrnlThrowException("Angle outside of bounds!");
+            }
+
+            glm::vec3 R10 = xyz[ics.didx[i-3].v3-1] - xyz[ics.didx[i-3].v2-1]; // vec[0] - vec[1]
+            //printv3ToStr("R10:",R10);
+            glm::vec3 R12 = xyz[ics.didx[i-3].v1-1] - xyz[ics.didx[i-3].v2-1]; // vec[0] - vec[1]
+            //printv3ToStr("R12:",R12);
+            glm::vec3 N = glm::normalize(glm::cross(R10,R12));
+            //printv3ToStr("CROSS:",N);
+            glm::vec3 rw = glm::rotate(-glm::normalize(R12),glm::radians(ics.angs[i-2]),N);
+            //printv3ToStr("RW1:",rw);
+            rw = glm::rotate(rw,glm::radians(ics.dhls[i-3]),glm::normalize(R12));
+            //printv3ToStr("RW2:",rw);
+            rw = ics.bnds[i-1] * rw + xyz[ics.didx[i-3].v1-1];
+            //printv3ToStr("RW3:",rw);
+            xyz.push_back(rw);
         }
-
-        glm::vec3 R10 = xyz[ics.didx[i-3].v3-1] - xyz[ics.didx[i-3].v2-1]; // vec[0] - vec[1]
-        //printv3ToStr("R10:",R10);
-        glm::vec3 R12 = xyz[ics.didx[i-3].v1-1] - xyz[ics.didx[i-3].v2-1]; // vec[0] - vec[1]
-        //printv3ToStr("R12:",R12);
-        glm::vec3 N = glm::normalize(glm::cross(R10,R12));
-        //printv3ToStr("CROSS:",N);
-        glm::vec3 rw = glm::rotate(-glm::normalize(R12),glm::radians(ics.angs[i-2]),N);
-        //printv3ToStr("RW1:",rw);
-        rw = glm::rotate(rw,glm::radians(ics.dhls[i-3]),glm::normalize(R12));
-        //printv3ToStr("RW2:",rw);
-        rw = ics.bnds[i-1] * rw + xyz[ics.didx[i-3].v1-1];
-        //printv3ToStr("RW3:",rw);
-        xyz.push_back(rw);
-    };
-
+    }
     //for (auto && i : xyz)
     //    std::cout << "XYZ: " << v3ToStr(i) << std::endl;
 };
