@@ -532,9 +532,9 @@ void itrnl::iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz) {
         for (unsigned i=3; i<ics.bnds.size()+1; ++i) {
             //std::cout << ics.didx[i-3].v3-1 << std::endl;
             //std::cout << ics.didx[i-3].v1-1 << std::endl;
-            if (ics.angs[i-2] > 180.0 || ics.angs[i-2] < 0.0) {
-                itrnlThrowException("Angle outside of bounds!");
-            }
+            //if (ics.angs[i-2] > 180.0 || ics.angs[i-2] < 0.0) {
+             //   itrnlThrowException("Angle outside of bounds!");
+            //}
 
             glm::vec3 R10 = xyz[ics.didx[i-3].v3-1] - xyz[ics.didx[i-3].v2-1]; // vec[0] - vec[1]
             //printv3ToStr("R10:",R10);
@@ -548,6 +548,7 @@ void itrnl::iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz) {
             //printv3ToStr("RW2:",rw);
             rw = ics.bnds[i-1] * rw + xyz[ics.didx[i-3].v1-1];
             //printv3ToStr("RW3:",rw);
+
             xyz.push_back(rw);
         }
     }
