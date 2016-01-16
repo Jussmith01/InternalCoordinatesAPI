@@ -1,0 +1,28 @@
+Executable:bin/lib/libInternalCoordinateAPI.so
+$c++:
+	compiler:
+		g++
+	flags:
+		-std=c++11 -Wall -fPIC -Wno-strict-aliasing -O3 -I/home/jsmith48/scratch/Gits/g09DNNTSBuilder/include
+        dir: 
+        	none  
+        files:
+        	internalcoordinate
+	DONE
+$ENDc++
+$cuda:
+	compiler:
+	flags:
+        dir: 
+        files:
+	DONE
+$ENDcuda
+$linkerflags:
+	compiler:
+		g++ -shared
+	flags:
+
+	DONE
+$ENDlinkerflags
+$END OF FILE$
+
