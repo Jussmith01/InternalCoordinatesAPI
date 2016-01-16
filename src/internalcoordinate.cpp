@@ -377,6 +377,15 @@ itrnl::t_iCoords itrnl::Internalcoordinates::generateRandomICoords(RandomReal &r
     return oic;
 };
 
+/*--------Return the initial IC----------
+
+
+
+------------------------------------------*/
+itrnl::t_iCoords itrnl::Internalcoordinates::getInitialICoords() {
+    return iic;
+};
+
 /*------Generate a scan IC Struct--------
 
 Generate a scan IC structure based upon
