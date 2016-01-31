@@ -514,6 +514,19 @@ public:
         oxyz.clear();
         oxyz.resize(ixyz.size());
 
+
+        float theta,z,R;
+        rnGen.setRandomRange(-1.0f,1.0f);
+        rnGen.getRandom(z);
+
+        rnGen.setRandomRange(0.0f,2.0f * M_PI);
+        rnGen.getRandom(theta);
+
+        rnGen.setRandomRange(0.0,irnd[i]);
+        rnGen.getRandom(R);
+
+
+
         for (unsigned i = 0; i < oxyz.size(); ++i) {
             rnGen.setRandomRange(ixyz[i].x - irnd[i],ixyz[i].x + irnd[i]);
             rnGen.getRandom(oxyz[i].x);
