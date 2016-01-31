@@ -16,6 +16,67 @@
 
 #define Rad 180.0/M_PI; /*radians to degrees*/
 
+/****************************************
+
+    itrnl::t_ICRandRng functions
+
+*****************************************/
+void itrnl::t_ICRandRng::setRandomRanges(std::vector< std::string > &rngin) {
+    rset=true;
+
+    std::regex patt_rrngb("([B])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s+([-+]?[0-9]*\\.?[0-9]+)");
+    std::regex patt_rrnga("([A])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s+([-+]?[0-9]*\\.?[0-9]+)");
+    std::regex patt_rrngd("([D])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s+([-+]?[0-9]*\\.?[0-9]+)");
+
+    for (auto && i : rngin) {
+        std::smatch m;
+
+        // Bond Matching
+        if        (std::regex_search(i,m,patt_rrngb)) {
+            rngb.push_back(std::pair<float,float>(atof(m.str(2).c_str()),atof(m.str(3).c_str())));
+        } else if (std::regex_search(i,m,patt_rrnga)) {
+            rnga.push_back(std::pair<float,float>(atof(m.str(2).c_str()),atof(m.str(3).c_str())));
+        } else if (std::regex_search(i,m,patt_rrngd)) {
+            rngd.push_back(std::pair<float,float>(atof(m.str(2).c_str()),atof(m.str(3).c_str())));
+        } else {
+            itrnlThrowException("A random range line does not match the expected syntax. Check the input.");
+        }
+    };
+};
+
+/****************************************
+
+    itrnl::t_ICRandRng functions
+
+*****************************************/
+void itrnl::t_ICScanRng::setScanRanges(std::vector< std::string > &rngin) {
+    sset=true;
+
+    std::regex patt_rrngb("([B])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s+([-+]?[0-9]*\\.?[0-9]+)");
+    std::regex patt_rrnga("([A])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s+([-+]?[0-9]*\\.?[0-9]+)");
+    std::regex patt_rrngd("([D])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s+([-+]?[0-9]*\\.?[0-9]+)");
+
+    for (auto && i : rngin) {
+        std::smatch m;
+
+        // Bond Matching
+        if        (std::regex_search(i,m,patt_rrngb)) {
+            rngb.push_back(std::pair<float,float>(atof(m.str(2).c_str()),atof(m.str(3).c_str())));
+        } else if (std::regex_search(i,m,patt_rrnga)) {
+            rnga.push_back(std::pair<float,float>(atof(m.str(2).c_str()),atof(m.str(3).c_str())));
+        } else if (std::regex_search(i,m,patt_rrngd)) {
+            rngd.push_back(std::pair<float,float>(atof(m.str(2).c_str()),atof(m.str(3).c_str())));
+        } else {
+            itrnlThrowException("A scan range line does not match the expected syntax. Check the input.");
+        }
+    };
+};
+
+/****************************************
+
+  itrnl::InternalCoordinates functions
+
+*****************************************/
 /*---------Store the bond index------------
 
 ------------------------------------------*/
@@ -47,6 +108,9 @@ void itrnl::Internalcoordinates::m_calculateBondIndex(const std::vector< glm::iv
 
     // Sort by the first element from lowest to highest
     std::sort(iic.bidx.begin(),iic.bidx.end(),itrnl::bndComparelt);
+    for (auto & i : iic.bidx) {
+        std::cout << "[" << i.v1 << "," << i.v2 << "]" << std::endl;
+    }
 };
 
 /*---------Calculate the Angle index-----------
@@ -123,7 +187,7 @@ void itrnl::Internalcoordinates::m_getAtomTypes(const std::vector< std::string >
 
     std::regex patt_atom("([A-Za-z]+)", std::regex_constants::icase);
     iic.type.reserve(icoords.size());
-    for ( unsigned i=0;i<icoords.size();++i ) {
+    for ( unsigned i=0; i<icoords.size(); ++i ) {
         std::smatch m;
         std::regex_search(icoords[i],m,patt_atom);
         iic.type.push_back(m.str(0));
@@ -136,7 +200,7 @@ void itrnl::Internalcoordinates::m_getAtomTypes(const std::vector< std::string >
 ------------------------------------------*/
 void itrnl::Internalcoordinates::m_getBondIndex(const std::vector< std::string > &icoords) {
     std::regex patt_bond("[A-Za-z]+\\s+(\\d+)\\s+(\\d+\\.\\d+)", std::regex_constants::icase);
-    for ( unsigned i=0;i<icoords.size();++i ) {
+    for ( unsigned i=0; i<icoords.size(); ++i ) {
         std::smatch m;
         std::regex_search(icoords[i],m,patt_bond);
         if (!m.str(1).empty()) {
@@ -154,7 +218,7 @@ void itrnl::Internalcoordinates::m_getBondIndex(const std::vector< std::string >
 ----------------------------------------------*/
 void itrnl::Internalcoordinates::m_getAngleIndex(const std::vector< std::string > &icoords) {
     std::regex patt_angle("[A-Za-z]+\\s+(\\d+)\\s+\\d+\\.\\d+\\s+(\\d+)\\s+(\\d+\\.\\d+)", std::regex_constants::icase);
-    for ( unsigned i=0;i<icoords.size();++i ) {
+    for ( unsigned i=0; i<icoords.size(); ++i ) {
         std::smatch m;
         std::regex_search(icoords[i],m,patt_angle);
         if (!m.str(2).empty()) {
@@ -173,7 +237,7 @@ void itrnl::Internalcoordinates::m_getAngleIndex(const std::vector< std::string 
 ----------------------------------------------------*/
 void itrnl::Internalcoordinates::m_getDihedralIndex(const std::vector< std::string > &icoords) {
     std::regex patt_dihed("[A-Za-z]+\\s+(\\d+)\\s+\\d+\\.\\d+\\s+(\\d+)\\s+\\d+\\.\\d+\\s+(\\d+)\\s+(\\d+\\.\\d+)", std::regex_constants::icase);
-    for ( unsigned i=0;i<icoords.size();++i ) {
+    for ( unsigned i=0; i<icoords.size(); ++i ) {
         std::smatch m;
         std::regex_search(icoords[i],m,patt_dihed);
         if (!m.str(3).empty()) {
@@ -258,7 +322,7 @@ Calculates internal coordinates of an xyz input
 based on stored Internal Coordinate (IC) index.
 
 ------------------------------------------*/
-void itrnl::Internalcoordinates::m_setInternalCoordinatesFromXYZ(const std::vector<glm::vec3> &xyz) {
+void itrnl::Internalcoordinates::m_setInternalCoordinatesFromXYZ(const std::vector<glm::vec3> &xyz,const std::vector<std::string> &type) {
     try {
         // These Functions fill the t_iCoords iic class member variable
         // with the bonds, angles and dihedrals from the varibles
@@ -266,6 +330,8 @@ void itrnl::Internalcoordinates::m_setInternalCoordinatesFromXYZ(const std::vect
         m_calculateBonds(xyz);
         m_calculateAngles(xyz);
         m_calculateDihedrals(xyz);
+
+        iic.type = type;
 
     } catch (std::string error) itrnlErrorcatch(error);
 };
@@ -277,21 +343,81 @@ initial. Store in the working IC vectors.
 
 ------------------------------------------*/
 itrnl::t_iCoords itrnl::Internalcoordinates::generateRandomICoords(RandomReal &rnGen) {
-    t_iCoords oic(iic);
+    t_iCoords oic(iic); // Copy the classes initial coords
 
-    for (unsigned i=0; i<iic.bnds.size(); ++i) {
-        rnGen.setRandomRange(iic.bnds[i]-0.1f,iic.bnds[i]+0.1f);
-        rnGen.getRandom(oic.bnds[i]);
+    if (rrg.isset()) {
+
+        for (unsigned i=0; i<iic.bnds.size(); ++i) {
+            float fst = rrg.getRngBnd(i).first;
+            float sec = rrg.getRngBnd(i).second;
+
+            rnGen.setRandomRange(iic.bnds[i]-fst,iic.bnds[i]+sec);
+            rnGen.getRandom(oic.bnds[i]);
+        }
+
+        for (unsigned i=0; i<iic.angs.size(); ++i) {
+            float fst = rrg.getRngAng(i).first;
+            float sec = rrg.getRngAng(i).second;
+
+            rnGen.setRandomRange(iic.angs[i]-fst,iic.angs[i]+sec);
+            rnGen.getRandom(oic.angs[i]);
+        }
+
+        for (unsigned i=0; i<iic.dhls.size(); ++i) {
+            float fst = rrg.getRngDhl(i).first;
+            float sec = rrg.getRngDhl(i).second;
+
+            rnGen.setRandomRange(iic.dhls[i]-fst,iic.dhls[i]+sec);
+            rnGen.getRandom(oic.dhls[i]);
+        }
+    } else {
+        itrnlThrowException("Random range class is not set!");
     }
 
-    for (unsigned i=0; i<iic.angs.size(); ++i) {
-        rnGen.setRandomRange(iic.angs[i]-5.0f,iic.angs[i]+5.0f);
-        rnGen.getRandom(oic.angs[i]);
-    }
+    return oic;
+};
 
-    for (unsigned i=0; i<iic.dhls.size(); ++i) {
-        rnGen.setRandomRange(iic.dhls[i]-10.0f,iic.dhls[i]+10.0f);
-        rnGen.getRandom(oic.dhls[i]);
+/*--------Return the initial IC----------
+
+
+
+------------------------------------------*/
+itrnl::t_iCoords itrnl::Internalcoordinates::getInitialICoords() {
+    return iic;
+};
+
+/*------Generate a scan IC Struct--------
+
+Generate a scan IC structure based upon
+initial. Store in the working IC vectors.
+
+------------------------------------------*/
+itrnl::t_iCoords itrnl::Internalcoordinates::generateScanICoords() {
+    t_iCoords oic(iic); // Copy the classes initial coords
+
+    if (srg.isset()) {
+        unsigned inc = srg.getCounter();
+
+        for (unsigned i=0; i<iic.bnds.size(); ++i) {
+            float fst = srg.getRngBnd(i).first;
+            float sec = srg.getRngBnd(i).second;
+            oic.bnds[i] = iic.bnds[i] - sec + inc * fst;
+        }
+        ;
+
+        for (unsigned i=0; i<iic.angs.size(); ++i) {
+            float fst = srg.getRngAng(i).first;
+            float sec = srg.getRngAng(i).second;
+            oic.angs[i] = iic.angs[i] - sec + inc * fst;
+        }
+
+        for (unsigned i=0; i<iic.dhls.size(); ++i) {
+            float fst = srg.getRngDhl(i).first;
+            float sec = srg.getRngDhl(i).second;
+            oic.dhls[i] = iic.dhls[i] - sec + inc * fst;
+        }
+    } else {
+        itrnlThrowException("Scan range class is not set!");
     }
 
     return oic;
@@ -346,31 +472,95 @@ Returns a string of the Internal Coordinates
 pended.
 
 ------------------------------------------*/
-std::string itrnl::getCsvICoordStr(const t_iCoords &ics) {
+std::string itrnl::getCsvICoordStr(const t_iCoords &ics,std::string units) {
     std::stringstream icstr;
     icstr << ics.bnds.size() << "," << ics.angs.size() << "," << ics.dhls.size() << ",";
     icstr.setf( std::ios::scientific, std::ios::floatfield );
 
-    for (auto&& i : ics.bnds)
-        icstr << std::setprecision(7) << i << ",";
+    if (units.compare("radians")==0) {
+        for (auto&& i : ics.bnds)
+            icstr << std::setprecision(7) << i << ",";
 
-    for (auto&& i : ics.angs)
-        icstr << std::setprecision(7) << i << ",";
+        for (auto&& i : ics.angs)
+            icstr << std::setprecision(7) << glm::radians(i) << ",";
 
-    for (auto&& i : ics.dhls)
-        icstr << std::setprecision(7) << i << ",";
+        for (auto&& i : ics.dhls)
+            icstr << std::setprecision(7) << glm::radians(i) << ",";
+    } else {
+        for (auto&& i : ics.bnds)
+            icstr << std::setprecision(7) << i << ",";
+
+        for (auto&& i : ics.angs)
+            icstr << std::setprecision(7) << i << ",";
+
+        for (auto&& i : ics.dhls)
+            icstr << std::setprecision(7) << i << ",";
+    }
+
 
     //std::string rtn(icstr.str());
 
     return icstr.str();
 };
 
+std::string v3ToStr(glm::vec3 &v) {
+    std::stringstream ss;
+    ss.setf( std::ios::fixed, std::ios::floatfield );
+    ss << " [" << std::setprecision(7) << v.x << "," << v.y << "," << v.z << "]";
+    return ss.str();
+};
+
+void printv3ToStr(std::string comment,glm::vec3 &v) {
+    std::stringstream ss;
+    ss.setf( std::ios::fixed, std::ios::floatfield );
+    ss << " [" << std::setprecision(7) << v.x << "," << v.y << "," << v.z << "]";
+    std::cout << comment << ss.str() << std::endl;
+};
 /*------------IC to Cartesian-------------
 
 Calculates cartesian coordinates based on
 internal coordinates
 
 ------------------------------------------*/
-//void itrnl::Internalcoordinates::m_calculateCartesianCoordinates(std::vector<glm::vec3> &xyz) {
+void itrnl::iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz) {
+    xyz.clear();
 
-//};
+    xyz.push_back(glm::vec3(0.0,0.0,0.0));
+    xyz.push_back(glm::vec3(ics.bnds[0],0.0,0.0));
+
+    //std::cout << ics.aidx[0].v2-1 << " " << ics.aidx[0].v1-1 << std::endl;
+
+    if (ics.type.size() > 2) {
+        glm::vec3 xyztmp = glm::normalize(glm::vec3(xyz[ics.aidx[0].v2-1] - xyz[ics.aidx[0].v1-1]));
+        //printv3ToStr("Tvec:",xyztmp);
+        if (xyztmp.x > 0)
+            xyz.push_back(glm::rotate(xyztmp,-glm::radians(ics.angs[0]),glm::vec3(0.0,0.0,1.0)) * ics.bnds[1] + xyz[ics.aidx[0].v1-1]);
+        else
+            xyz.push_back(glm::rotate(xyztmp,-glm::radians(ics.angs[0]),glm::vec3(0.0,0.0,1.0)) * ics.bnds[1] + xyz[ics.aidx[0].v1-1]);
+
+        for (unsigned i=3; i<ics.bnds.size()+1; ++i) {
+            //std::cout << ics.didx[i-3].v3-1 << std::endl;
+            //std::cout << ics.didx[i-3].v1-1 << std::endl;
+            //if (ics.angs[i-2] > 180.0 || ics.angs[i-2] < 0.0) {
+             //   itrnlThrowException("Angle outside of bounds!");
+            //}
+
+            glm::vec3 R10 = xyz[ics.didx[i-3].v3-1] - xyz[ics.didx[i-3].v2-1]; // vec[0] - vec[1]
+            //printv3ToStr("R10:",R10);
+            glm::vec3 R12 = xyz[ics.didx[i-3].v1-1] - xyz[ics.didx[i-3].v2-1]; // vec[0] - vec[1]
+            //printv3ToStr("R12:",R12);
+            glm::vec3 N = glm::normalize(glm::cross(R10,R12));
+            //printv3ToStr("CROSS:",N);
+            glm::vec3 rw = glm::rotate(-glm::normalize(R12),glm::radians(ics.angs[i-2]),N);
+            //printv3ToStr("RW1:",rw);
+            rw = glm::rotate(rw,glm::radians(ics.dhls[i-3]),glm::normalize(R12));
+            //printv3ToStr("RW2:",rw);
+            rw = ics.bnds[i-1] * rw + xyz[ics.didx[i-3].v1-1];
+            //printv3ToStr("RW3:",rw);
+
+            xyz.push_back(rw);
+        }
+    }
+    //for (auto && i : xyz)
+    //    std::cout << "XYZ: " << v3ToStr(i) << std::endl;
+};

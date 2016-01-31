@@ -14,11 +14,14 @@
 //      *************************************************************     //
 /* Check for sufficient compiler version */
 #if defined(__GNUC__) || defined(__GNUG__)
-    #if !(__GNUC__ >= 4 && __GNUC_MINOR__ >= 8)
-        #error "Insufficient GNU Compiler Version -- 4.8 or greater required"
-    #endif
+#if (__GNUC__ < 4)
+#error "Insufficient GNU compiler version to install this library-- 4.9 or greater required"
+#endif
+#if (__GNUC__ == 4 && __GNUC_MINOR__ < 9)
+#error "Insufficient GNU compiler version to install this library-- 4.9 or greater required"
+#endif
 #else
-    #warning "Currently only GNU compilers are supported and tested, but go ahead if you know what you're doing."
+#warning "Currently only GNU compilers are supported and tested, but go ahead if you know what you're doing."
 #endif
 
 /*----------------------------------------------
@@ -73,9 +76,12 @@
 #include "randnormflt.h"
 #include <fstream>
 #include <regex>
+#include <utility>
 
 // GLM Vector Math
+//#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 
 namespace itrnl {
 
@@ -196,9 +202,115 @@ public:
     std::vector<float> dhls; // Storage for dihedrals
 
     void clear () {
-        bidx.clear();aidx.clear();didx.clear();
+        bidx.clear();
+        aidx.clear();
+        didx.clear();
         type.clear();
-        bnds.clear();angs.clear();dhls.clear();
+        bnds.clear();
+        angs.clear();
+        dhls.clear();
+    };
+};
+
+/*--------Internal Coordinates RandRng----------
+
+
+This type stores the Ranges of the random
+purturbations of the IC.
+
+----------------------------------------------*/
+class t_ICRandRng {
+
+    bool rset;
+
+    std::vector< std::pair<float,float> > rngb; // Range of bonds
+    std::vector< std::pair<float,float> > rnga; // Range of angles
+    std::vector< std::pair<float,float> > rngd; // Range of dihedrals
+
+public:
+
+    t_ICRandRng () :
+        rset(false) {
+    };
+
+    // Returns true if the range values are set.
+    bool isset() {
+        return rset;
+    };
+
+    // Const Access Functions
+    const std::pair<float,float>& getRngBnd(unsigned i) {
+        return rngb[i];
+    };
+    const std::pair<float,float>& getRngAng(unsigned i) {
+        return rnga[i];
+    };
+    const std::pair<float,float>& getRngDhl(unsigned i) {
+        return rngd[i];
+    };
+
+    // Function for defining the random ranges
+    void setRandomRanges (std::vector< std::string > &rngin);
+
+    void clear () {
+        rnga.clear();
+        rngb.clear();
+        rngd.clear();
+    };
+};
+
+/*--------Internal Coordinates RandRng----------
+
+
+This type stores the Ranges of the random
+purturbations of the IC.
+
+----------------------------------------------*/
+class t_ICScanRng {
+
+    bool sset;
+    unsigned scnt;
+
+    std::vector< std::pair<float,float> > rngb; // Range of bonds
+    std::vector< std::pair<float,float> > rnga; // Range of angles
+    std::vector< std::pair<float,float> > rngd; // Range of dihedrals
+
+public:
+
+    t_ICScanRng () :
+        sset(false),scnt(0) {
+    };
+
+    // Returns true if the range values are set.
+    bool isset() {
+        return sset;
+    };
+
+    // Returns the scan counter and increment it by one.
+    unsigned getCounter() {
+        unsigned tmp(scnt);
+        ++scnt;
+        return tmp;
+    };
+
+    // Const Access Functions
+    const std::pair<float,float>& getRngBnd(unsigned i) {
+        return rngb[i];
+    };
+    const std::pair<float,float>& getRngAng(unsigned i) {
+        return rnga[i];
+    };
+    const std::pair<float,float>& getRngDhl(unsigned i) {
+        return rngd[i];
+    };
+
+    // Function for defining the scan ranges
+    void setScanRanges (std::vector< std::string > &scnin);
+
+    void clear () {
+        rnga.clear();
+        rngb.clear();
+        rngd.clear();
     };
 };
 
@@ -211,11 +323,11 @@ angles and dihedrals of the molecule.
 class Internalcoordinates {
 
     t_iCoords iic; // Initial Internal Coordinates
+    t_ICRandRng rrg; // Random Range Container
+    t_ICScanRng srg; // Scan Range Container
 
-    unsigned cnt;
 
-    //Internalcoordinates () {}; // Private default constructor
-
+    /** Member Fucntions **/
     // Calculate the bonding index
     void m_calculateBondIndex(const std::vector< glm::ivec2 > &mbond);
 
@@ -250,14 +362,12 @@ class Internalcoordinates {
     std::string m_createCSVICstring(const std::vector<glm::vec3> &xyz);
 
     // Calculate the values for the internal coords based on xyz input
-    void m_setInternalCoordinatesFromXYZ(const std::vector<glm::vec3> &xyz);
+    void m_setInternalCoordinatesFromXYZ(const std::vector<glm::vec3> &xyz,const std::vector<std::string> &type);
 
 public:
 
     // Class index constructor
-    Internalcoordinates (const std::vector< glm::ivec2 > &mbond) :
-        cnt(0)
-    {
+    Internalcoordinates (const std::vector< glm::ivec2 > &mbond) {
         try {
             /* Determing Internal Coords */
             m_calculateBondIndex(mbond);
@@ -268,7 +378,7 @@ public:
     };
 
     // Class index and initial iternals constructor
-    Internalcoordinates (const std::vector< glm::ivec2 > &mbond,const std::vector<glm::vec3> &ixyz) {
+    Internalcoordinates (const std::vector< glm::ivec2 > &mbond,const std::vector<glm::vec3> &ixyz,const std::vector<std::string> &type) {
         try {
             /* Determing (IC) Internal Coords Index */
             m_calculateBondIndex(mbond);
@@ -276,14 +386,13 @@ public:
             m_calculateDihedralIndex();
 
             /* Calculate and store the initial IC */
-            m_setInternalCoordinatesFromXYZ(ixyz);
+            m_setInternalCoordinatesFromXYZ(ixyz,type);
 
         } catch (std::string error) itrnlErrorcatch(error);
     };
 
     // Class index and initial iternals constructor
-    Internalcoordinates (const std::vector< std::string > &icoords) :
-        cnt(0) {
+    Internalcoordinates (const std::vector< std::string > &icoords) {
         try {
             /* Determing (IC) Internal Coords Index */
             m_getAtomTypes(icoords);
@@ -297,8 +406,18 @@ public:
     // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
     std::string calculateCSVInternalCoordinates(const std::vector<glm::vec3> &xyz);
 
-    // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
+    // Generate a random structure
     t_iCoords generateRandomICoords(RandomReal &rnGen);
+
+    // Generate a random structure
+    t_iCoords getInitialICoords();
+
+    // Generate a random structure
+    t_iCoords generateScanICoords();
+
+    std::vector<std::string> getAtomTypes (void) {
+        return iic.type;
+    }
 
     // Data Printer
     void printdata() {
@@ -313,6 +432,14 @@ public:
         return iic;
     }
 
+    t_ICRandRng& getRandRng() {
+        return rrg;
+    }
+
+    t_ICScanRng& getScanRng() {
+        return srg;
+    }
+
     // Destructor
     ~Internalcoordinates() {
         iic.clear();
@@ -323,8 +450,92 @@ public:
 extern void iCoordToZMat(const t_iCoords &ics,std::string &zmats);
 
 // Calculate the CSV (Comma Separated Values) string of internal coords based on xyz input
-extern std::string getCsvICoordStr(const t_iCoords &ics);
+extern std::string getCsvICoordStr(const t_iCoords &ics, std::string units="degrees");
 
+// Convert internal coordinates to XYZ
+extern void iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz);
+
+/*---------IC Distance Matrix Class------------
+
+
+----------------------------------------------*/
+class RandomCartesian {
+
+    std::vector<glm::vec3>   ixyz; // Initial Cartesian Coords
+    std::vector<float>       irnd; // Random ranges for each atom
+    std::vector<std::string> ityp; // Input Types
+    std::vector<std::string> otyp; // Output types
+
+    void m_parsecrdsin(const std::vector< std::string > &crdsin) {
+        using namespace std;
+
+        //std::cout << "-------------------------------------\n";
+        //std::cout << crdsin << std::endl;
+        //std::cout << "-------------------------------------\n";
+
+        regex pattern_crds("\\s*([A-Z][a-z]*)\\s*([A-Z][a-z]*\\d*)\\s*([-]*\\d.\\d+)\\s*([-]*\\d.\\d+)\\s*([-]*\\d.\\d+)\\s*(\\d.\\d+)\\s*");
+
+        for (auto&& i : crdsin) {
+            smatch m;
+            if (regex_search(i,m,pattern_crds)) {
+
+                /*std::cout << "-------------------------------------\n";
+                std::cout << m.str(1) << " "
+                          << m.str(2) << " "
+                          << m.str(3) << " "
+                          << m.str(4) << " "
+                          << m.str(5) << " "
+                          << m.str(6) << "\n";
+                std::cout << "-------------------------------------\n";*/
+
+                ityp.push_back( m.str(1) );
+                otyp.push_back( m.str(2) );
+                ixyz.push_back( glm::vec3( atof(m.str(3).c_str())
+                                           ,atof(m.str(4).c_str())
+                                           ,atof(m.str(5).c_str()) ) );
+
+                irnd.push_back( atof(m.str(6).c_str()) );
+
+            } else {
+                cout << "No matching pattern found in menu script file!" << endl;
+            }
+        }
+    };
+
+public:
+
+    // Class index constructor
+    RandomCartesian (const std::vector< std::string > crdsin) {
+        m_parsecrdsin(crdsin);
+    };
+
+    // Generate a set of random coordinates
+    void generateRandomCoords(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+        oxyz.clear();
+        oxyz.resize(ixyz.size());
+
+        for (unsigned i = 0; i < oxyz.size(); ++i) {
+            rnGen.setRandomRange(ixyz[i].x - irnd[i],ixyz[i].x + irnd[i]);
+            rnGen.getRandom(oxyz[i].x);
+
+            rnGen.setRandomRange(ixyz[i].y - irnd[i],ixyz[i].y + irnd[i]);
+            rnGen.getRandom(oxyz[i].y);
+
+            rnGen.setRandomRange(ixyz[i].z - irnd[i],ixyz[i].z + irnd[i]);
+            rnGen.getRandom(oxyz[i].z);
+        }
+    };
+
+    // Get the input types
+    std::vector<std::string> getitype() {
+        return ityp;
+    };
+
+    // Get the output types
+    std::vector<std::string> getotype() {
+        return otyp;
+    };
+};
 
 };
 #endif
