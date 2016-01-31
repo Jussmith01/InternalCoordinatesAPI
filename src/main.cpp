@@ -16,15 +16,22 @@
 int main(int argc, char *argv[]) {
     using namespace itrnl;
 
-    std::vector<std::string> xyz =
-        {std::string("C  C1  1.0000 2.0000 3.0000 0.5000")
-        ,std::string("H  H1  1.0000 0.0000 0.0000 0.5000")
-        ,std::string("H  H1  0.0000 2.0000 3.0000 0.25000")
-        ,std::string("H  H2  0.0000 1.0000 2.0000 0.25000")
-        ,std::string("He He2 0.0000 1.0000 0.0000 0.2000")};
+    std::stringstream xyz;
+    xyz << "C  C1  1.0001 2.0006 3.0078 0.50000\n";
+    xyz << "H  H1  1.0002 0.0000 0.0009 0.50000\n";
+    xyz << "H  H1  0.0000 2.0005 3.0008 0.25000\n";
+    xyz << "H  H2  0.0000 1.0002 2.0003 0.25000\n";
+    xyz << "He He2 0.0000 1.0001 0.0000 0.20000";
 
+    std::stringstream rin;
+    rin << "B 0 1 0.5 0.5\n";
+    rin << "B 1 3 0.2 0.2\n";
+    rin << "A 0 1 2 11.0 12.0\n";
+    rin << "D 0 1 2 3 118.0 61.0\n";
+    rin << "D 0 1 2 4 90.0 90.0\n";
 
-    RandomCartesian rcrds(xyz);
+    RandomCartesian rcrds(xyz.str(),rin.str());
+
 
 
 

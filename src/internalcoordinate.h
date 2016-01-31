@@ -105,7 +105,14 @@ bndCompare() - A function that
 // 8 byte alignment forced to prevent cache mis-alignment
 struct bndindex {
     int v1,v2;
-} __attribute__ ((__aligned__(8)));
+    float bs,bf;
+
+    bndindex () {};
+
+    bndindex (int v1,int v2,float bs,float bf)
+        : v1(v1),v2(v2),bs(bs),bf(bf) {};
+
+} __attribute__ ((__aligned__(16)));
 
 // Function for creating bond indexes
 inline bndindex CreateBondIndex(const int v1,const int v2) {
@@ -140,6 +147,13 @@ CreateAngleIndex() - A function
 // 8 byte alignment forced to prevent cache mis-alignment
 struct angindex {
     int v1,v2,v3;
+    float as,af;
+
+    angindex () {};
+
+    angindex (int v1,int v2,int v3,float as,float af)
+        : v1(v1),v2(v2),v3(v3),as(as),af(af) {};
+
 } __attribute__ ((__aligned__(16)));
 
 inline angindex CreateAngleIndex(const int v1,const int v2,const int v3) {
@@ -170,6 +184,13 @@ CreateDihedralIndex() - A
 // 8 byte alignment forced to prevent cache mis-alignment
 struct dhlindex {
     int v1,v2,v3,v4;
+    float ds,df;
+
+    dhlindex () {};
+
+    dhlindex (int v1,int v2,int v3,int v4,float ds,float df)
+        : v1(v1),v2(v2),v3(v3),v4(v4),ds(ds),df(df) {};
+
 } __attribute__ ((__aligned__(16)));
 
 inline dhlindex CreateDihedralIndex(const int v1,const int v2,const int v3,const int v4) {
@@ -466,87 +487,27 @@ class RandomCartesian {
     std::vector<std::string> ityp; // Input Types
     std::vector<std::string> otyp; // Output types
 
-    void m_parsecrdsin(const std::vector< std::string > &crdsin) {
-        using namespace std;
+    std::vector<bndindex> bidx; // Bond index and random bounds
+    std::vector<angindex> aidx; // Angle index and random bounds
+    std::vector<dhlindex> didx; // Dihedral index and random bounds
 
-        //std::cout << "-------------------------------------\n";
-        //std::cout << crdsin << std::endl;
-        //std::cout << "-------------------------------------\n";
+    void m_parsecrdsin(const std::string &crdsin);
 
-        regex pattern_crds("\\s*([A-Z][a-z]*)\\s*([A-Z][a-z]*\\d*)\\s*([-]*\\d.\\d+)\\s*([-]*\\d.\\d+)\\s*([-]*\\d.\\d+)\\s*(\\d.\\d+)\\s*");
-
-        for (auto&& i : crdsin) {
-            smatch m;
-            if (regex_search(i,m,pattern_crds)) {
-
-                /*std::cout << "-------------------------------------\n";
-                std::cout << m.str(1) << " "
-                          << m.str(2) << " "
-                          << m.str(3) << " "
-                          << m.str(4) << " "
-                          << m.str(5) << " "
-                          << m.str(6) << "\n";
-                std::cout << "-------------------------------------\n";*/
-
-                ityp.push_back( m.str(1) );
-                otyp.push_back( m.str(2) );
-                ixyz.push_back( glm::vec3( atof(m.str(3).c_str())
-                                           ,atof(m.str(4).c_str())
-                                           ,atof(m.str(5).c_str()) ) );
-
-                irnd.push_back( atof(m.str(6).c_str()) );
-
-            } else {
-                cout << "No matching pattern found in menu script file!" << endl;
-            }
-        }
-    };
+    void m_parserandin(const std::string &randin);
 
 public:
 
     // Class index constructor
-    RandomCartesian (const std::vector< std::string > crdsin) {
-        m_parsecrdsin(crdsin);
-    };
+    RandomCartesian (const std::string crdsin,const std::string randin);
 
-    // Generate a set of random coordinates
-    void generateRandomCoords(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
-        oxyz.clear();
-        oxyz.resize(ixyz.size());
+    // Class index constructor
+    RandomCartesian (const std::string crdsin);
 
+    // Generate a set of spherical random coordinates
+    void generateRandomCoordsSpherical(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
 
-        float theta,Z,R;
-        for (unsigned i = 0; i < oxyz.size(); ++i) {
-            // Compute a random vector
-            rnGen.setRandomRange(-1.0f,1.0f);
-            rnGen.getRandom(Z);
-
-            rnGen.setRandomRange(0.0f,2.0f * M_PI);
-            rnGen.getRandom(theta);
-
-            rnGen.setRandomRange(0.0,irnd[i]);
-            rnGen.getRandom(R);
-
-            float x ( sqrt(1.0f-Z*Z) * cos(theta) );
-            float y ( sqrt(1.0f-Z*Z) * sin(theta) );
-            float z ( Z );
-
-            glm::vec3 Rvec( R * glm::normalize( glm::vec3(x,y,z) ) );
-
-            oxyz[i] = ixyz[i] + Rvec;
-
-            //std::cout << "Rvec: [" << Rvec.x << "," << Rvec.x << "," << Rvec.x << "]\n";
-
-            //rnGen.setRandomRange(ixyz[i].x - irnd[i],ixyz[i].x + irnd[i]);
-            //rnGen.getRandom(oxyz[i].x);
-
-            //rnGen.setRandomRange(ixyz[i].y - irnd[i],ixyz[i].y + irnd[i]);
-            //rnGen.getRandom(oxyz[i].y);
-
-            //rnGen.setRandomRange(ixyz[i].z - irnd[i],ixyz[i].z + irnd[i]);
-            //rnGen.getRandom(oxyz[i].z);
-        }
-    };
+        // Generate a set of boxed random coordinates
+    void generateRandomCoordsBox(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
 
     // Get the input types
     std::vector<std::string> getitype() {

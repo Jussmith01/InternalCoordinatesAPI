@@ -542,7 +542,7 @@ void itrnl::iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz) {
             //std::cout << ics.didx[i-3].v3-1 << std::endl;
             //std::cout << ics.didx[i-3].v1-1 << std::endl;
             //if (ics.angs[i-2] > 180.0 || ics.angs[i-2] < 0.0) {
-             //   itrnlThrowException("Angle outside of bounds!");
+            //   itrnlThrowException("Angle outside of bounds!");
             //}
 
             glm::vec3 R10 = xyz[ics.didx[i-3].v3-1] - xyz[ics.didx[i-3].v2-1]; // vec[0] - vec[1]
@@ -563,4 +563,159 @@ void itrnl::iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz) {
     }
     //for (auto && i : xyz)
     //    std::cout << "XYZ: " << v3ToStr(i) << std::endl;
+};
+
+/** --------------------------------------------
+
+              Random Cartesian Class
+
+
+---------------------------------------------- **/
+// Class index constructor
+itrnl::RandomCartesian::RandomCartesian (const std::string crdsin,const std::string randin) {
+    m_parsecrdsin(crdsin);
+    m_parserandin(randin);
+};
+
+// Class index constructor
+itrnl::RandomCartesian::RandomCartesian (const std::string crdsin) {
+    m_parsecrdsin(crdsin);
+};
+
+// Generate a spherical set of random coordinates
+void itrnl::RandomCartesian::generateRandomCoordsSpherical(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+    oxyz.clear();
+    oxyz.resize(ixyz.size());
+
+
+    float theta,Z,R;
+    for (unsigned i = 0; i < oxyz.size(); ++i) {
+        // Compute a random vector
+        rnGen.setRandomRange(-1.0f,1.0f);
+        rnGen.getRandom(Z);
+
+        rnGen.setRandomRange(0.0f,2.0f * M_PI);
+        rnGen.getRandom(theta);
+
+        rnGen.setRandomRange(0.0,irnd[i]);
+        rnGen.getRandom(R);
+
+        float x ( sqrt(1.0f-Z*Z) * cos(theta) );
+        float y ( sqrt(1.0f-Z*Z) * sin(theta) );
+        float z ( Z );
+
+        glm::vec3 Rvec( R * glm::normalize( glm::vec3(x,y,z) ) );
+
+        oxyz[i] = ixyz[i] + Rvec;
+    }
+};
+
+// Generate a set of boxed random coordinates
+void itrnl::RandomCartesian::generateRandomCoordsBox(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+    oxyz.clear();
+    oxyz.resize(ixyz.size());
+
+    for (unsigned i = 0; i < oxyz.size(); ++i) {
+
+        rnGen.setRandomRange(ixyz[i].x - irnd[i],ixyz[i].x + irnd[i]);
+        rnGen.getRandom(oxyz[i].x);
+
+        rnGen.setRandomRange(ixyz[i].y - irnd[i],ixyz[i].y + irnd[i]);
+        rnGen.getRandom(oxyz[i].y);
+
+        rnGen.setRandomRange(ixyz[i].z - irnd[i],ixyz[i].z + irnd[i]);
+        rnGen.getRandom(oxyz[i].z);
+    }
+};
+
+/** MEMBER FUNCTIONS **/
+void itrnl::RandomCartesian::m_parsecrdsin(const std::string &crdsin) {
+    using namespace std;
+
+    //std::cout << "-------------------------------------\n";
+    //std::cout << crdsin << std::endl;
+    //std::cout << "-------------------------------------\n";
+
+    regex pattern_crds("\\s*([A-Z][a-z]*)\\s*([A-Z][a-z]*\\d*)\\s*([-]*\\d.\\d+)\\s*([-]*\\d.\\d+)\\s*([-]*\\d.\\d+)\\s*(\\d.\\d+)\\s*");
+
+    if (regex_search(crdsin,pattern_crds)) {
+        sregex_iterator items(crdsin.begin(),crdsin.end(),pattern_crds);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            //Do stuff with items
+            ityp.push_back( items->str(1) );
+            otyp.push_back( items->str(2) );
+            ixyz.push_back( glm::vec3( atof(items->str(3).c_str())
+                                      ,atof(items->str(4).c_str())
+                                      ,atof(items->str(5).c_str()) ) );
+
+            irnd.push_back( atof(items->str(6).c_str()) );
+
+            std::cout << ityp.back() << " " <<  otyp.back() << " [" << ixyz.back().x << "," << ixyz.back().y << "," << ixyz.back().z << "] Rand: " << irnd.back() << std::endl;
+        }
+    } else {
+        cout << "No matching pattern found in menu script file!" << endl;
+    }
+};
+
+void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
+    using namespace std;
+
+    //std::cout << "-------------------------------------\n";
+    //std::cout << crdsin << std::endl;
+    //std::cout << "-------------------------------------\n";
+
+    regex pattern_bnds("B\\s+(\\d+)\\s+(\\d+)\\s+(\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    if (regex_search(randin,pattern_bnds)) {
+        sregex_iterator items(randin.begin(),randin.end(),pattern_bnds);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            bidx.emplace_back( atoi(items->str(1).c_str())
+                              ,atoi(items->str(2).c_str())
+                              ,atof(items->str(3).c_str())
+                              ,atof(items->str(4).c_str()) );
+        }
+    }
+
+    std::cout << "BONDS:" << std::endl;
+    for (auto&& i : bidx) {
+        std::cout << "[" << i.v1 << "," << i.v2 << "] - [" << i.bs << "," << i.bf << "]\n";
+    }
+
+    regex pattern_angs("A\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    if (regex_search(randin,pattern_angs)) {
+        sregex_iterator items(randin.begin(),randin.end(),pattern_angs);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            aidx.emplace_back( atoi(items->str(1).c_str())
+                              ,atoi(items->str(2).c_str())
+                              ,atoi(items->str(3).c_str())
+                              ,atof(items->str(4).c_str())
+                              ,atof(items->str(5).c_str()) );
+        }
+    }
+
+    std::cout << "ANGLES:" << std::endl;
+    for (auto&& i : aidx) {
+        std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "] - [" << i.as << "," << i.af << "]\n";
+    }
+
+    regex pattern_dhls("D\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    if (regex_search(randin,pattern_dhls)) {
+        sregex_iterator items(randin.begin(),randin.end(),pattern_dhls);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            didx.emplace_back( atoi(items->str(1).c_str())
+                              ,atoi(items->str(2).c_str())
+                              ,atoi(items->str(3).c_str())
+                              ,atoi(items->str(4).c_str())
+                              ,atof(items->str(5).c_str())
+                              ,atof(items->str(6).c_str()) );
+        }
+    }
+
+    std::cout << "DIHEDRALS:" << std::endl;
+    for (auto&& i : didx) {
+        std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "," << i.v4 << "] - [" << i.ds << "," << i.df << "]\n";
+    }
 };
