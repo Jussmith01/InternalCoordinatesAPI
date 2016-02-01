@@ -646,8 +646,8 @@ void itrnl::RandomCartesian::m_parsecrdsin(const std::string &crdsin) {
             ityp.push_back( items->str(1) );
             otyp.push_back( items->str(2) );
             ixyz.push_back( glm::vec3( atof(items->str(3).c_str())
-                                      ,atof(items->str(4).c_str())
-                                      ,atof(items->str(5).c_str()) ) );
+                                       ,atof(items->str(4).c_str())
+                                       ,atof(items->str(5).c_str()) ) );
 
             irnd.push_back( atof(items->str(6).c_str()) );
 
@@ -671,9 +671,9 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
         sregex_iterator end;
         for (; items != end; ++items) {
             bidx.emplace_back( atoi(items->str(1).c_str())
-                              ,atoi(items->str(2).c_str())
-                              ,atof(items->str(3).c_str())
-                              ,atof(items->str(4).c_str()) );
+                               ,atoi(items->str(2).c_str())
+                               ,atof(items->str(3).c_str())
+                               ,atof(items->str(4).c_str()) );
         }
     }
 
@@ -688,10 +688,10 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
         sregex_iterator end;
         for (; items != end; ++items) {
             aidx.emplace_back( atoi(items->str(1).c_str())
-                              ,atoi(items->str(2).c_str())
-                              ,atoi(items->str(3).c_str())
-                              ,atof(items->str(4).c_str())
-                              ,atof(items->str(5).c_str()) );
+                               ,atoi(items->str(2).c_str())
+                               ,atoi(items->str(3).c_str())
+                               ,atof(items->str(4).c_str())
+                               ,atof(items->str(5).c_str()) );
         }
     }
 
@@ -706,16 +706,37 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
         sregex_iterator end;
         for (; items != end; ++items) {
             didx.emplace_back( atoi(items->str(1).c_str())
-                              ,atoi(items->str(2).c_str())
-                              ,atoi(items->str(3).c_str())
-                              ,atoi(items->str(4).c_str())
-                              ,atof(items->str(5).c_str())
-                              ,atof(items->str(6).c_str()) );
+                               ,atoi(items->str(2).c_str())
+                               ,atoi(items->str(3).c_str())
+                               ,atoi(items->str(4).c_str())
+                               ,atof(items->str(5).c_str())
+                               ,atof(items->str(6).c_str()) );
         }
     }
 
     std::cout << "DIHEDRALS:" << std::endl;
     for (auto&& i : didx) {
         std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "," << i.v4 << "] - [" << i.ds << "," << i.df << "]\n";
+    }
+};
+
+// Bond tranform
+void itrnl::RandomCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+    for (auto b=bidx.begin();b!=bidx.end();++b) {
+
+    }
+};
+
+// Angle Transform
+void itrnl::RandomCartesian::m_angtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+    for (auto a=aidx.begin();a!=aidx.end();++a) {
+
+    }
+};
+
+// Dihedral Transform
+void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+    for (auto d=didx.begin();d!=didx.end();++d) {
+
     }
 };

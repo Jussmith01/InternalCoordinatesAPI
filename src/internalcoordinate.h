@@ -491,9 +491,27 @@ class RandomCartesian {
     std::vector<angindex> aidx; // Angle index and random bounds
     std::vector<dhlindex> didx; // Dihedral index and random bounds
 
+    // Parse Coords Input
     void m_parsecrdsin(const std::string &crdsin);
 
+    // Parse Random Input
     void m_parserandin(const std::string &randin);
+
+    // Bond tranform
+    void m_bndtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
+
+    // Angle Transform
+    void m_angtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
+
+    // Dihedral Transform
+    void m_dhltransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
+
+    // transform molecule based on index data
+    void m_tranformviaidx(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+        m_bndtransform(oxyz,rnGen);
+        m_angtransform(oxyz,rnGen);
+        m_dhltransform(oxyz,rnGen);
+    };
 
 public:
 
