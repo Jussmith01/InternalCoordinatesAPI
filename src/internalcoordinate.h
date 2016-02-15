@@ -82,6 +82,7 @@
 //#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/vector_angle.hpp>
 
 namespace itrnl {
 
@@ -105,12 +106,15 @@ bndCompare() - A function that
 // 8 byte alignment forced to prevent cache mis-alignment
 struct bndindex {
     int v1,v2;
-    float bs,bf;
+    float bs,bf,bi;
 
     bndindex () {};
 
     bndindex (int v1,int v2,float bs,float bf)
         : v1(v1),v2(v2),bs(bs),bf(bf) {};
+
+    bndindex (int v1,int v2,float bs,float bf,float bi)
+        : v1(v1),v2(v2),bs(bs),bf(bf),bi(bi) {};
 
 } __attribute__ ((__aligned__(16)));
 
@@ -147,12 +151,15 @@ CreateAngleIndex() - A function
 // 8 byte alignment forced to prevent cache mis-alignment
 struct angindex {
     int v1,v2,v3;
-    float as,af;
+    float as,af,ai;
 
     angindex () {};
 
     angindex (int v1,int v2,int v3,float as,float af)
         : v1(v1),v2(v2),v3(v3),as(as),af(af) {};
+
+    angindex (int v1,int v2,int v3,float as,float af,float ai)
+        : v1(v1),v2(v2),v3(v3),as(as),af(af),ai(ai) {};
 
 } __attribute__ ((__aligned__(16)));
 
@@ -184,12 +191,15 @@ CreateDihedralIndex() - A
 // 8 byte alignment forced to prevent cache mis-alignment
 struct dhlindex {
     int v1,v2,v3,v4;
-    float ds,df;
+    float ds,df,di;
 
     dhlindex () {};
 
     dhlindex (int v1,int v2,int v3,int v4,float ds,float df)
         : v1(v1),v2(v2),v3(v3),v4(v4),ds(ds),df(df) {};
+
+    dhlindex (int v1,int v2,int v3,int v4,float ds,float df,float di)
+        : v1(v1),v2(v2),v3(v3),v4(v4),ds(ds),df(df),di(di) {};
 
 } __attribute__ ((__aligned__(16)));
 
@@ -476,7 +486,7 @@ extern std::string getCsvICoordStr(const t_iCoords &ics, std::string units="degr
 // Convert internal coordinates to XYZ
 extern void iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz);
 
-/*---------IC Distance Matrix Class------------
+/*---------Random Cartesian Class------------
 
 
 ----------------------------------------------*/
@@ -484,15 +494,22 @@ class RandomCartesian {
 
     std::vector<glm::vec3>   ixyz; // Initial Cartesian Coords
     std::vector<float>       irnd; // Random ranges for each atom
+
     std::vector<std::string> ityp; // Input Types
     std::vector<std::string> otyp; // Output types
 
-    std::vector<bndindex> bidx; // Bond index and random bounds
-    std::vector<angindex> aidx; // Angle index and random bounds
-    std::vector<dhlindex> didx; // Dihedral index and random bounds
+    std::vector<bndindex> bidx; // Bond index and random or scan bounds
+    std::vector<angindex> aidx; // Angle index and random or scan bounds
+    std::vector<dhlindex> didx; // Dihedral index and random or scan bounds
+
+    std::vector<unsigned> conn1; // These vectors define the connectivity of the molecule
+    std::vector<unsigned> conn2; //
 
     // Parse Coords Input
     void m_parsecrdsin(const std::string &crdsin);
+
+    // Parse Connectivity Input
+    void m_parseconnin(const std::string &connin);
 
     // Parse Random Input
     void m_parserandin(const std::string &randin);
@@ -513,19 +530,137 @@ class RandomCartesian {
         m_dhltransform(oxyz,rnGen);
     };
 
+    bool m_searchforidx(unsigned idx
+                       ,std::vector<unsigned> &carr);
+
+    void m_searchconnectivity(unsigned catom
+                             ,std::vector<unsigned> &bond);
+
+    void m_determinebondconnectivity(const bndindex &bidx
+                                    ,std::vector<unsigned> &sbond
+                                    ,std::vector<unsigned> &dbond);
+
+    void m_determineangleconnectivity(const angindex &aidx
+                                     ,std::vector<unsigned> &sbond
+                                     ,std::vector<unsigned> &dbond);
+
+    void m_determinedihedralconnectivity(const dhlindex &didx
+                                        ,std::vector<unsigned> &sbond
+                                        ,std::vector<unsigned> &dbond);
+
 public:
 
     // Class index constructor
-    RandomCartesian (const std::string crdsin,const std::string randin);
-
-    // Class index constructor
-    RandomCartesian (const std::string crdsin);
+    RandomCartesian (const std::string crdsin,const std::string connin,const std::string randin);
 
     // Generate a set of spherical random coordinates
     void generateRandomCoordsSpherical(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
 
         // Generate a set of boxed random coordinates
     void generateRandomCoordsBox(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
+
+    // Get the input types
+    std::vector<std::string> getitype() {
+        return ityp;
+    };
+
+    // Get the output types
+    std::vector<std::string> getotype() {
+        return otyp;
+    };
+};
+
+/*---------IC Distance Matrix Class------------
+
+
+----------------------------------------------*/
+class ScanCartesian {
+
+    std::vector<glm::vec3>   ixyz; // Initial Cartesian Coords
+
+    unsigned scanidx; // Used to determine which scan is being set
+    std::vector<unsigned> scanrcnt; // Running Counter
+    std::vector<unsigned> scantcnt; // Totals Counter
+
+    bool complete;
+
+    std::vector<std::string> ityp; // Input Types
+    std::vector<std::string> otyp; // Output types
+
+    std::vector<bndindex> bidx; // Bond index and random or scan bounds
+    std::vector<angindex> aidx; // Angle index and random or scan bounds
+    std::vector<dhlindex> didx; // Dihedral index and random or scan bounds
+
+    std::vector<unsigned> conn1; // These vectors define the connectivity of the molecule
+    std::vector<unsigned> conn2; //
+
+    // Increment Scan Counter
+    void incScanCounter (unsigned si) {
+        if (si == scanidx-1) {
+            // Last guy
+            ++scanrcnt[si];
+        } else {
+            if (scanrcnt[si+1] + 1 == scantcnt[si + 1]) {
+                ++scanrcnt[si];
+                scanrcnt[si+1] = 0;
+            }
+        }
+
+        if (scanrcnt[0] == scantcnt[0]) {
+            complete = true;
+        }
+    };
+
+    // Parse Coords Input
+    void m_parsecrdsin(const std::string &crdsin);
+
+    // Parse Connectivity Input
+    void m_parseconnin(const std::string &connin);
+
+    // Parse Random Input
+    void m_parsescanin(const std::string &randin);
+
+    // Bond tranform
+    void m_bndtransform(std::vector<glm::vec3> &oxyz);
+
+    // Angle Transform
+    void m_angtransform(std::vector<glm::vec3> &oxyz);
+
+    // Dihedral Transform
+    void m_dhltransform(std::vector<glm::vec3> &oxyz);
+
+    // transform molecule based on index data
+    void m_tranformviaidx(std::vector<glm::vec3> &oxyz) {
+        m_bndtransform(oxyz);
+        m_angtransform(oxyz);
+        m_dhltransform(oxyz);
+    };
+
+    bool m_searchforidx(unsigned idx
+                       ,std::vector<unsigned> &carr);
+
+    void m_searchconnectivity(unsigned catom
+                             ,std::vector<unsigned> &bond);
+
+    void m_determinebondconnectivity(const bndindex &bidx
+                                    ,std::vector<unsigned> &sbond
+                                    ,std::vector<unsigned> &dbond);
+
+    void m_determineangleconnectivity(const angindex &aidx
+                                     ,std::vector<unsigned> &sbond
+                                     ,std::vector<unsigned> &dbond);
+
+    void m_determinedihedralconnectivity(const dhlindex &didx
+                                        ,std::vector<unsigned> &sbond
+                                        ,std::vector<unsigned> &dbond);
+
+public:
+
+    // Class index constructor
+    ScanCartesian (const std::string crdsin,const std::string connin,const std::string scanin);
+
+    // Generate a set of spherical random coordinates
+    bool generateNextScanStructure(std::vector<glm::vec3> &oxyz);
 
     // Get the input types
     std::vector<std::string> getitype() {

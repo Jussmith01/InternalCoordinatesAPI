@@ -133,6 +133,25 @@ public:
             randErrorcatch(std::string("Random Distribution not found!"));
     };
 
+    // Constructor
+    RandomReal(std::vector<int> seedarray,std::string dist) :
+        threadseeds(seedarray)
+    {
+        if (dist.compare("uniform")==0)
+        {
+            //std::cout << "Random number generator: Using uniform distribution from " << arg1 << " to " << arg2 << std::endl;
+            randGenVec=&RandomReal::fillVectorUniformDist;
+            randGenFlt=&RandomReal::floatUniformDist;
+        }
+        else if (dist.compare("normal")==0)
+        {
+            //std::cout << "Random number generator: Using normal distribution w/ mean " << arg1 << " std. dev. " << arg2 << std::endl;
+            randGenVec=&RandomReal::fillVectorNormalDist;
+            randGenFlt=&RandomReal::floatNormalDist;
+        } else
+            randErrorcatch(std::string("Random Distribution not found!"));
+    };
+
     // Set the random value range
     void setRandomRange(float arg1, float arg2) {
         this->arg1 = arg1;

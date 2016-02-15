@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
+#include <iterator>
 
 // Namespace header
 #include "internalcoordinate.h"
@@ -571,24 +572,23 @@ void itrnl::iCoordToXYZ(const t_iCoords &ics,std::vector<glm::vec3> &xyz) {
 
 
 ---------------------------------------------- **/
-// Class index constructor
-itrnl::RandomCartesian::RandomCartesian (const std::string crdsin,const std::string randin) {
-    m_parsecrdsin(crdsin);
-    m_parserandin(randin);
-};
-
-// Class index constructor
-itrnl::RandomCartesian::RandomCartesian (const std::string crdsin) {
-    m_parsecrdsin(crdsin);
+// Class constructor
+itrnl::RandomCartesian::RandomCartesian (const std::string crdsin,const std::string connin,const std::string randin) {
+    m_parsecrdsin(crdsin); // Parse Coordinates
+    m_parseconnin(connin); // Parse Connectivity
+    m_parserandin(randin); // Parse Random DOF
 };
 
 // Generate a spherical set of random coordinates
 void itrnl::RandomCartesian::generateRandomCoordsSpherical(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
     oxyz.clear();
-    oxyz.resize(ixyz.size());
+    oxyz = ixyz;
 
+    //std::cout << "TRANSFORM" << std::endl;
+    m_tranformviaidx(oxyz,rnGen);
 
     float theta,Z,R;
+    //std::cout << "RANDOMIZE" << std::endl;
     for (unsigned i = 0; i < oxyz.size(); ++i) {
         // Compute a random vector
         rnGen.setRandomRange(-1.0f,1.0f);
@@ -606,8 +606,9 @@ void itrnl::RandomCartesian::generateRandomCoordsSpherical(std::vector<glm::vec3
 
         glm::vec3 Rvec( R * glm::normalize( glm::vec3(x,y,z) ) );
 
-        oxyz[i] = ixyz[i] + Rvec;
+        oxyz[i] = oxyz[i] + Rvec;
     }
+    //std::cout << "END" << std::endl;
 };
 
 // Generate a set of boxed random coordinates
@@ -636,7 +637,7 @@ void itrnl::RandomCartesian::m_parsecrdsin(const std::string &crdsin) {
     //std::cout << crdsin << std::endl;
     //std::cout << "-------------------------------------\n";
 
-    regex pattern_crds("\\s*([A-Z][a-z]*)\\s*([A-Z][a-z]*\\d*)\\s*([-]*\\d.\\d+)\\s*([-]*\\d.\\d+)\\s*([-]*\\d.\\d+)\\s*(\\d.\\d+)\\s*");
+    regex pattern_crds("\\s*([A-Z][a-z]*)\\s+([A-Z][a-z]*\\d*)\\s+([-,+]*\\d+\\.\\d+)\\s+([-,+]*\\d+\\.\\d+)\\s+([-,+]*\\d+\\.\\d+)\\s+([-,+]*\\d+\\.\\d+)\\s*");
 
     if (regex_search(crdsin,pattern_crds)) {
         sregex_iterator items(crdsin.begin(),crdsin.end(),pattern_crds);
@@ -651,10 +652,38 @@ void itrnl::RandomCartesian::m_parsecrdsin(const std::string &crdsin) {
 
             irnd.push_back( atof(items->str(6).c_str()) );
 
-            std::cout << ityp.back() << " " <<  otyp.back() << " [" << ixyz.back().x << "," << ixyz.back().y << "," << ixyz.back().z << "] Rand: " << irnd.back() << std::endl;
+            //std::cout << ityp.back() << " " <<  otyp.back() << " [" << ixyz.back().x << "," << ixyz.back().y << "," << ixyz.back().z << "] Rand: " << irnd.back() << std::endl;
         }
     } else {
-        cout << "No matching pattern found in menu script file!" << endl;
+        cout << "No coordinates matching pattern found in menu script file!" << endl;
+    }
+};
+
+void itrnl::RandomCartesian::m_parseconnin(const std::string &connin) {
+    using namespace std;
+
+    //std::cout << "-------------------------------------\n";
+    //std::cout << connin;
+    //std::cout << "-------------------------------------\n";
+
+    regex pattern_conn("\\s*(\\d+)\\s+(\\d+)\\s*");
+
+    if (regex_search(connin,pattern_conn)) {
+        sregex_iterator items(connin.begin(),connin.end(),pattern_conn);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            //Do stuff with items
+            conn1.push_back( atoi( items->str(1).c_str() ) );
+            conn2.push_back( atoi( items->str(2).c_str() ) );
+
+            if ( conn1.back() == 0 || conn2.back() == 0 ) {
+                itrnlErrorcatch(std::string("ERROR: Connectiviy index begins at 1 not 0."));
+            }
+
+            //std::cout << "CONN [" << conn1.back() << "," << conn2.back() << "]"  << std::endl;
+        }
+    } else {
+        cout << "No connectivity matching pattern found in menu script file!" << endl;
     }
 };
 
@@ -677,10 +706,10 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
         }
     }
 
-    std::cout << "BONDS:" << std::endl;
-    for (auto&& i : bidx) {
-        std::cout << "[" << i.v1 << "," << i.v2 << "] - [" << i.bs << "," << i.bf << "]\n";
-    }
+    //std::cout << "BONDS:" << std::endl;
+    //for (auto&& i : bidx) {
+    //    std::cout << "[" << i.v1 << "," << i.v2 << "] - [" << i.bs << "," << i.bf << "]\n";
+    //}
 
     regex pattern_angs("A\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
     if (regex_search(randin,pattern_angs)) {
@@ -695,10 +724,10 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
         }
     }
 
-    std::cout << "ANGLES:" << std::endl;
-    for (auto&& i : aidx) {
-        std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "] - [" << i.as << "," << i.af << "]\n";
-    }
+    //std::cout << "ANGLES:" << std::endl;
+    //for (auto&& i : aidx) {
+    //    std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "] - [" << i.as << "," << i.af << "]\n";
+    //}
 
     regex pattern_dhls("D\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
     if (regex_search(randin,pattern_dhls)) {
@@ -714,29 +743,494 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
         }
     }
 
-    std::cout << "DIHEDRALS:" << std::endl;
-    for (auto&& i : didx) {
-        std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "," << i.v4 << "] - [" << i.ds << "," << i.df << "]\n";
+    //std::cout << "DIHEDRALS:" << std::endl;
+    //for (auto&& i : didx) {
+    //    std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "," << i.v4 << "] - [" << i.ds << "," << i.df << "]\n";
+    //}
+};
+
+bool itrnl::RandomCartesian::m_searchforidx(unsigned idx
+        ,std::vector<unsigned> &carr) {
+
+    for (auto& c : carr) {
+        if (idx == c) {
+            return true;
+        }
     }
+
+    return false;
+}
+
+void itrnl::RandomCartesian::m_searchconnectivity(unsigned catom
+        ,std::vector<unsigned> &bond) {
+    unsigned Nc ( conn1.size() );
+    unsigned it (0);
+
+    bool finished (false);
+    while (!finished) {
+        unsigned se (bond[it]); // Search element
+
+        // Search conn1
+        for (unsigned i = 0; i <  Nc; ++i) {
+            if ( conn1[i] == se && conn2[i] != catom ) {
+                if ( !m_searchforidx(conn2[i],bond) ) {
+                    bond.push_back(conn2[i]);
+                }
+            }
+        }
+
+        // Search conn2
+        for (unsigned i = 0; i <  Nc; ++i) {
+            if ( conn2[i] == se && conn1[i] != catom ) {
+                if ( !m_searchforidx(conn1[i],bond) ) {
+                    bond.push_back(conn1[i]);
+                }
+            }
+        }
+
+        if (bond.size() == it+1) {
+            finished = true;
+        } else {
+            ++it;
+        }
+    }
+};
+
+void itrnl::RandomCartesian::m_determinebondconnectivity(const bndindex &bidx
+        ,std::vector<unsigned> &sbond
+        ,std::vector<unsigned> &dbond) {
+    sbond.push_back( bidx.v1 );
+    dbond.push_back( bidx.v2 );
+
+    m_searchconnectivity(bidx.v2,sbond);
+    m_searchconnectivity(bidx.v1,dbond);
+};
+
+void itrnl::RandomCartesian::m_determineangleconnectivity(const angindex &aidx
+                                                         ,std::vector<unsigned> &sbond
+                                                         ,std::vector<unsigned> &dbond) {
+    sbond.push_back( aidx.v2 );
+    dbond.push_back( aidx.v2 );
+
+    m_searchconnectivity(aidx.v1,sbond);
+    m_searchconnectivity(aidx.v3,dbond);
+};
+
+void itrnl::RandomCartesian::m_determinedihedralconnectivity(const dhlindex &didx
+                                                            ,std::vector<unsigned> &sbond
+                                                            ,std::vector<unsigned> &dbond) {
+    sbond.push_back( didx.v2 );
+    dbond.push_back( didx.v3 );
+
+    m_searchconnectivity(didx.v3,sbond);
+    m_searchconnectivity(didx.v2,dbond);
 };
 
 // Bond tranform
 void itrnl::RandomCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
-    for (auto b=bidx.begin();b!=bidx.end();++b) {
+    //std::cout << std::endl;
+    for (auto b=bidx.begin(); b!=bidx.end(); ++b) {
+        std::cout << "Randomizing Bonds (" << std::distance(bidx.begin(),b) << ")" << std::endl;
+        unsigned ati1 (b->v1 - 1);
+        unsigned ati2 (b->v2 - 1);
 
+        std::vector<unsigned> sbond; // Static Bonds
+        std::vector<unsigned> dbond; // Dynamic Bonds
+
+        m_determinebondconnectivity((*b),sbond,dbond);
+
+        glm::vec3 bvec( glm::normalize( oxyz[ati1] - oxyz[ati2] ) ); // Normalized bond vector
+
+        float rval;
+        rnGen.setRandomRange(-b->bs,b->bf); // Set range
+        rnGen.getRandom(rval); // Get random value
+
+        /* Transform Bond */
+        for (auto& pb : dbond) {
+            oxyz[pb-1] = oxyz[pb-1] + bvec * rval; // Purturb dynamic values
+        }
     }
 };
 
 // Angle Transform
 void itrnl::RandomCartesian::m_angtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
-    for (auto a=aidx.begin();a!=aidx.end();++a) {
+    for (auto a=aidx.begin(); a!=aidx.end(); ++a) {
+        //std::cout << "Randomizing Angles (" << std::distance(aidx.begin(),a) << ")" << std::endl;
+        //std::cout << "Angle: [" << a->v1 << "," << a->v2 <<  "," << a->v3 << "] Range: [" << a->as << "," << a->af << "]" << std::endl;
+        unsigned ati1 (a->v1 - 1);
+        unsigned ati2 (a->v2 - 1);
+        unsigned ati3 (a->v3 - 1);
 
+        std::vector<unsigned> sbond; // Static Bonds
+        std::vector<unsigned> dbond; // Dynamic Bonds
+
+        m_determineangleconnectivity((*a),sbond,dbond);
+
+        // Compute Rotation Axis
+        glm::vec3 axis(glm::cross(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati3]-oxyz[ati2])));
+
+        float rval;
+        rnGen.setRandomRange(-a->as,a->af); // Set range
+        rnGen.getRandom(rval); // Get random value in range
+
+        /* Transform Angle */
+        for (auto pa = dbond.begin() + 1; pa != dbond.end(); ++pa) {
+            oxyz[(*pa)-1] = oxyz[ati2] + glm::rotate( oxyz[(*pa)-1] - oxyz[ati2],glm::radians(rval),axis );
+        }
     }
 };
 
 // Dihedral Transform
 void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
-    for (auto d=didx.begin();d!=didx.end();++d) {
+    for (auto d=didx.begin(); d!=didx.end(); ++d) {
+        //std::cout << "Randomizing Dihedrals (" << std::distance(didx.begin(),d) << ")" << std::endl;
+        //std::cout << "Dihedral: [" << d->v1 << "," << d->v2 <<  "," << d->v3 <<  "," << d->v4 << "] Range: [" << d->ds << "," << d->df << "]" << std::endl;
+        unsigned ati1 (d->v1 - 1);
+        unsigned ati2 (d->v2 - 1);
+        unsigned ati3 (d->v3 - 1);
+        unsigned ati4 (d->v4 - 1);
 
+        std::vector<unsigned> sbond; // Static Bonds
+        std::vector<unsigned> dbond; // Dynamic Bonds
+
+        m_determinedihedralconnectivity((*d),sbond,dbond);
+
+        // Compute Rotation Axis
+        glm::vec3 axis(glm::cross(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati4]-oxyz[ati3])));
+
+        float rval;
+        rnGen.setRandomRange(-d->ds,d->df); // Set range
+        rnGen.getRandom(rval); // Get random value in range
+
+        /* Transform Dihedral */
+        for (auto pd = dbond.begin() + 1; pd != dbond.end(); ++pd) {
+            oxyz[(*pd)-1] = oxyz[ati3] + glm::rotate( oxyz[(*pd)-1] - oxyz[ati3],glm::radians(rval),axis );
+        }
+    }
+};
+
+/** --------------------------------------------
+
+              Scan Cartesian Class
+
+---------------------------------------------- **/
+// Class constructor
+itrnl::ScanCartesian::ScanCartesian (const std::string crdsin,const std::string connin,const std::string scanin)
+    : complete(false)
+{
+    m_parsecrdsin(crdsin); // Parse Coordinates
+    m_parseconnin(connin); // Parse Connectivity
+    m_parsescanin(scanin); // Parse Random DOF
+};
+
+// Generate a spherical set of random coordinates
+bool itrnl::ScanCartesian::generateNextScanStructure(std::vector<glm::vec3> &oxyz) {
+    if (!complete) {
+        oxyz.clear();
+        oxyz = ixyz;
+
+        m_tranformviaidx(oxyz);
+        return false;
+    } else {
+        return true;
+    }
+};
+
+
+/** MEMBER FUNCTIONS **/
+void itrnl::ScanCartesian::m_parsecrdsin(const std::string &crdsin) {
+    using namespace std;
+
+    //std::cout << "-------------------------------------\n";
+    //std::cout << crdsin << std::endl;
+    //std::cout << "-------------------------------------\n";
+
+    regex pattern_crds("\\s*([A-Z][a-z]*)\\s+([A-Z][a-z]*\\d*)\\s+([-,+]*\\d+\\.\\d+)\\s+([-,+]*\\d+\\.\\d+)\\s+([-,+]*\\d+\\.\\d+)\\s*");
+
+    if (regex_search(crdsin,pattern_crds)) {
+        sregex_iterator items(crdsin.begin(),crdsin.end(),pattern_crds);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            //Do stuff with items
+            ityp.push_back( items->str(1) );
+            otyp.push_back( items->str(2) );
+            ixyz.push_back( glm::vec3( atof(items->str(3).c_str())
+                                       ,atof(items->str(4).c_str())
+                                       ,atof(items->str(5).c_str()) ) );
+
+            //std::cout << ityp.back() << " " <<  otyp.back() << " [" << ixyz.back().x << "," << ixyz.back().y << "," << ixyz.back().z << "] Rand: " << irnd.back() << std::endl;
+        }
+    } else {
+        cout << "No coordinates matching pattern found in menu script file!" << endl;
+    }
+};
+
+void itrnl::ScanCartesian::m_parseconnin(const std::string &connin) {
+    using namespace std;
+
+    //std::cout << "-------------------------------------\n";
+    //std::cout << connin;
+    //std::cout << "-------------------------------------\n";
+
+    regex pattern_conn("\\s*(\\d+)\\s+(\\d+)\\s*");
+
+    if (regex_search(connin,pattern_conn)) {
+        sregex_iterator items(connin.begin(),connin.end(),pattern_conn);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            //Do stuff with items
+            conn1.push_back( atoi( items->str(1).c_str() ) );
+            conn2.push_back( atoi( items->str(2).c_str() ) );
+
+            if ( conn1.back() == 0 || conn2.back() == 0 ) {
+                itrnlErrorcatch(std::string("ERROR: Connectiviy index begins at 1 not 0."));
+            }
+
+            //std::cout << "CONN [" << conn1.back() << "," << conn2.back() << "]"  << std::endl;
+        }
+    } else {
+        cout << "No connectivity matching pattern found in menu script file!" << endl;
+    }
+};
+
+void itrnl::ScanCartesian::m_parsescanin(const std::string &scanin) {
+    using namespace std;
+
+    //std::cout << "-------------------------------------\n";
+    //std::cout << crdsin << std::endl;
+    //std::cout << "-------------------------------------\n";
+
+    regex pattern_bnds("B\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    if (regex_search(scanin,pattern_bnds)) {
+        sregex_iterator items(scanin.begin(),scanin.end(),pattern_bnds);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            bidx.emplace_back( atoi(items->str(1).c_str())
+                               ,atoi(items->str(2).c_str())
+                               ,atof(items->str(3).c_str())
+                               ,atof(items->str(4).c_str())
+                               ,atof(items->str(5).c_str()) );
+        }
+    }
+
+    //std::cout << "BONDS:" << std::endl;
+    //for (auto&& i : bidx) {
+    //    std::cout << "[" << i.v1 << "," << i.v2 << "] - [" << i.bs << "," << i.bf << "]\n";
+    //}
+
+    regex pattern_angs("A\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    if (regex_search(scanin,pattern_angs)) {
+        sregex_iterator items(scanin.begin(),scanin.end(),pattern_angs);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            aidx.emplace_back( atoi(items->str(1).c_str())
+                               ,atoi(items->str(2).c_str())
+                               ,atoi(items->str(3).c_str())
+                               ,atof(items->str(4).c_str())
+                               ,atof(items->str(5).c_str())
+                               ,atof(items->str(6).c_str()) );
+        }
+    }
+
+    //std::cout << "ANGLES:" << std::endl;
+    //for (auto&& i : aidx) {
+    //    std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "] - [" << i.as << "," << i.af << "]\n";
+    //}
+
+    regex pattern_dhls("D\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    if (regex_search(scanin,pattern_dhls)) {
+        sregex_iterator items(scanin.begin(),scanin.end(),pattern_dhls);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            didx.emplace_back( atoi(items->str(1).c_str())
+                               ,atoi(items->str(2).c_str())
+                               ,atoi(items->str(3).c_str())
+                               ,atoi(items->str(4).c_str())
+                               ,atof(items->str(5).c_str())
+                               ,atof(items->str(6).c_str())
+                               ,atof(items->str(7).c_str()) );
+        }
+    }
+
+    scanrcnt.resize(bidx.size() + aidx.size() + didx.size(),0);
+
+    for ( auto& b : bidx ) {
+        scantcnt.push_back( floor( abs( b.bf - b.bs ) / b.bi ) );
+    }
+
+    for ( auto& a : aidx ) {
+        scantcnt.push_back( floor( abs( a.af - a.as ) / a.ai ) );
+    }
+
+    for ( auto& d : didx ) {
+        scantcnt.push_back( floor( abs( d.df - d.ds ) / d.di ) );
+    }
+
+    scanidx = 0;
+
+    //std::cout << "DIHEDRALS:" << std::endl;
+    //for (auto&& i : didx) {
+    //    std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "," << i.v4 << "] - [" << i.ds << "," << i.df << "]\n";
+    //}
+};
+
+bool itrnl::ScanCartesian::m_searchforidx(unsigned idx
+                                         ,std::vector<unsigned> &carr) {
+
+    for (auto& c : carr) {
+        if (idx == c) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void itrnl::ScanCartesian::m_searchconnectivity(unsigned catom
+                                               ,std::vector<unsigned> &bond) {
+    unsigned Nc ( conn1.size() );
+    unsigned it (0);
+
+    bool finished (false);
+    while (!finished) {
+        unsigned se (bond[it]); // Search element
+
+        // Search conn1
+        for (unsigned i = 0; i <  Nc; ++i) {
+            if ( conn1[i] == se && conn2[i] != catom ) {
+                if ( !m_searchforidx(conn2[i],bond) ) {
+                    bond.push_back(conn2[i]);
+                }
+            }
+        }
+
+        // Search conn2
+        for (unsigned i = 0; i <  Nc; ++i) {
+            if ( conn2[i] == se && conn1[i] != catom ) {
+                if ( !m_searchforidx(conn1[i],bond) ) {
+                    bond.push_back(conn1[i]);
+                }
+            }
+        }
+
+        if (bond.size() == it+1) {
+            finished = true;
+        } else {
+            ++it;
+        }
+    }
+};
+
+void itrnl::ScanCartesian::m_determinebondconnectivity(const bndindex &bidx
+                                                      ,std::vector<unsigned> &sbond
+                                                      ,std::vector<unsigned> &dbond) {
+    sbond.push_back( bidx.v1 );
+    dbond.push_back( bidx.v2 );
+
+    m_searchconnectivity(bidx.v2,sbond);
+    m_searchconnectivity(bidx.v1,dbond);
+};
+
+void itrnl::ScanCartesian::m_determineangleconnectivity(const angindex &aidx
+                                                         ,std::vector<unsigned> &sbond
+                                                         ,std::vector<unsigned> &dbond) {
+    sbond.push_back( aidx.v2 );
+    dbond.push_back( aidx.v2 );
+
+    m_searchconnectivity(aidx.v1,sbond);
+    m_searchconnectivity(aidx.v3,dbond);
+};
+
+void itrnl::ScanCartesian::m_determinedihedralconnectivity(const dhlindex &didx
+                                                            ,std::vector<unsigned> &sbond
+                                                            ,std::vector<unsigned> &dbond) {
+    sbond.push_back( didx.v2 );
+    dbond.push_back( didx.v3 );
+
+    m_searchconnectivity(didx.v3,sbond);
+    m_searchconnectivity(didx.v2,dbond);
+};
+
+// Bond tranform
+void itrnl::ScanCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz) {
+    //std::cout << std::endl;
+    for (auto b=bidx.begin(); b!=bidx.end(); ++b) {
+        std::cout << "Randomizing Bonds (" << std::distance(bidx.begin(),b) << ")" << std::endl;
+        unsigned ati1 (b->v1 - 1);
+        unsigned ati2 (b->v2 - 1);
+
+        std::vector<unsigned> sbond; // Static Bonds
+        std::vector<unsigned> dbond; // Dynamic Bonds
+
+        m_determinebondconnectivity((*b),sbond,dbond);
+
+        glm::vec3 bvec( glm::normalize( oxyz[ati1] - oxyz[ati2] ) ); // Normalized bond vector
+
+        /* Transform Bond */
+        for (auto& pb : dbond) {
+            oxyz[pb-1] = oxyz[pb-1] + bvec * ( b->bs + scanrcnt[scanidx] * b->bi ); // Purturb dynamic values
+        }
+
+        incScanCounter(scanidx);
+        ++scanidx;
+    }
+};
+
+// Angle Transform
+void itrnl::ScanCartesian::m_angtransform(std::vector<glm::vec3> &oxyz) {
+    for (auto a=aidx.begin(); a!=aidx.end(); ++a) {
+        //std::cout << "Randomizing Angles (" << std::distance(aidx.begin(),a) << ")" << std::endl;
+        //std::cout << "Angle: [" << a->v1 << "," << a->v2 <<  "," << a->v3 << "] Range: [" << a->as << "," << a->af << "]" << std::endl;
+        unsigned ati1 (a->v1 - 1);
+        unsigned ati2 (a->v2 - 1);
+        unsigned ati3 (a->v3 - 1);
+
+        std::vector<unsigned> sbond; // Static Bonds
+        std::vector<unsigned> dbond; // Dynamic Bonds
+
+        m_determineangleconnectivity((*a),sbond,dbond);
+
+        // Compute Rotation Axis
+        glm::vec3 axis(glm::cross(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati3]-oxyz[ati2])));
+
+        float angle ( a->as + scanrcnt[scanidx] * a->ai );
+
+        /* Transform Angle */
+        for (auto pa = dbond.begin() + 1; pa != dbond.end(); ++pa) {
+            oxyz[(*pa)-1] = oxyz[ati2] + glm::rotate( oxyz[(*pa)-1] - oxyz[ati2],glm::radians(angle),axis );
+        }
+
+        incScanCounter(scanidx);
+        ++scanidx;
+    }
+};
+
+// Dihedral Transform
+void itrnl::ScanCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz) {
+    for (auto d=didx.begin(); d!=didx.end(); ++d) {
+        //std::cout << "Randomizing Dihedrals (" << std::distance(didx.begin(),d) << ")" << std::endl;
+        //std::cout << "Dihedral: [" << d->v1 << "," << d->v2 <<  "," << d->v3 <<  "," << d->v4 << "] Range: [" << d->ds << "," << d->df << "]" << std::endl;
+        unsigned ati1 (d->v1 - 1);
+        unsigned ati2 (d->v2 - 1);
+        unsigned ati3 (d->v3 - 1);
+        unsigned ati4 (d->v4 - 1);
+
+        std::vector<unsigned> sbond; // Static Bonds
+        std::vector<unsigned> dbond; // Dynamic Bonds
+
+        m_determinedihedralconnectivity((*d),sbond,dbond);
+
+        // Compute Rotation Axis
+        glm::vec3 axis(glm::cross(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati4]-oxyz[ati3])));
+
+        float angle ( d->ds + scanrcnt[scanidx] * d->di );
+
+        /* Transform Dihedral */
+        for (auto pd = dbond.begin() + 1; pd != dbond.end(); ++pd) {
+            oxyz[(*pd)-1] = oxyz[ati3] + glm::rotate( oxyz[(*pd)-1] - oxyz[ati3],glm::radians(angle),axis );
+        }
+
+        incScanCounter(scanidx);
+        ++scanidx;
     }
 };

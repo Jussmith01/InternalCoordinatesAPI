@@ -17,26 +17,30 @@ int main(int argc, char *argv[]) {
     using namespace itrnl;
 
     std::stringstream xyz;
-    xyz << "C  C1  1.0001 2.0006 3.0078 0.50000\n";
-    xyz << "H  H1  1.0002 0.0000 0.0009 0.50000\n";
-    xyz << "H  H1  0.0000 2.0005 3.0008 0.25000\n";
-    xyz << "H  H2  0.0000 1.0002 2.0003 0.25000\n";
-    xyz << "He He2 0.0000 1.0001 0.0000 0.20000";
+    xyz << "O O 0.0000 0.0000 -0.6\n";
+    xyz << "O O 0.0000 0.0000 0.60\n";
+    xyz << "H H 0.0000 1.0000 -0.6\n";
+    xyz << "H H 1.0000 0.0000 0.60\n";
+
+    std::stringstream conn; // Connectivity
+    conn << "3 1\n";
+    conn << "2 1\n";
+    conn << "2 4\n";
 
     std::stringstream rin;
-    rin << "B 0 1 0.5 0.5\n";
-    rin << "B 1 3 0.2 0.2\n";
-    rin << "A 0 1 2 11.0 12.0\n";
-    rin << "D 0 1 2 3 118.0 61.0\n";
-    rin << "D 0 1 2 4 90.0 90.0\n";
+    //rin << "B 1 2 0.5 0.5\n";
+    //rin << "B 2 4 0.2 0.2\n";
+    //rin << "A 2 1 3 0.0 90.0\n";
+    rin << "D 3 1 2 4 90.0 90.0\n";
 
-    RandomCartesian rcrds(xyz.str(),rin.str());
+    RandomCartesian rcrds(xyz.str(),conn.str(),rin.str());
 
+    std::vector<int> seeds = {822650048,8938205,51381752,90742112};
+    RandomReal reng(seeds,std::string("uniform"));
 
+    std::vector<glm::vec3> oxyz;
+    rcrds.generateRandomCoordsSpherical(oxyz,reng);
 
-
-    //std::vector<int> seeds = {822650048,8938205,51381752,90742112};
-    //RandomReal reng(seeds,0.0f,1.0f,std::string("uniform"));
 
     //std::ofstream out("frames.xyz");
     //out.setf( std::ios::fixed, std::ios::floatfield );
