@@ -48,8 +48,9 @@
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-std=c++11" />
 			<Add option="-Wall" />
+			<Add option="-std=c++11" />
+			<Add option="-Wno-strict-aliasing -Wno-comment" />
 			<Add directory="include" />
 		</Compiler>
 		<Unit filename="src/internalcoordinate.cpp" />

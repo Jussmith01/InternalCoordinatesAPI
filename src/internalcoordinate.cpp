@@ -694,7 +694,7 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
     //std::cout << crdsin << std::endl;
     //std::cout << "-------------------------------------\n";
 
-    regex pattern_bnds("B\\s+(\\d+)\\s+(\\d+)\\s+(\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    regex pattern_bnds("B\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.?\\d*)\\s+([-,+]?\\d+\\.?\\d*)");
     if (regex_search(randin,pattern_bnds)) {
         sregex_iterator items(randin.begin(),randin.end(),pattern_bnds);
         sregex_iterator end;
@@ -711,7 +711,7 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
     //    std::cout << "[" << i.v1 << "," << i.v2 << "] - [" << i.bs << "," << i.bf << "]\n";
     //}
 
-    regex pattern_angs("A\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    regex pattern_angs("A\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.?\\d*)\\s+([-,+]?\\d+\\?\\d*)");
     if (regex_search(randin,pattern_angs)) {
         sregex_iterator items(randin.begin(),randin.end(),pattern_angs);
         sregex_iterator end;
@@ -729,7 +729,7 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
     //    std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "] - [" << i.as << "," << i.af << "]\n";
     //}
 
-    regex pattern_dhls("D\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    regex pattern_dhls("D\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.?\\d*)\\s+([-,+]?\\d+\\.?\\d*)");
     if (regex_search(randin,pattern_dhls)) {
         sregex_iterator items(randin.begin(),randin.end(),pattern_dhls);
         sregex_iterator end;
@@ -807,8 +807,8 @@ void itrnl::RandomCartesian::m_determinebondconnectivity(const bndindex &bidx
 };
 
 void itrnl::RandomCartesian::m_determineangleconnectivity(const angindex &aidx
-                                                         ,std::vector<unsigned> &sbond
-                                                         ,std::vector<unsigned> &dbond) {
+        ,std::vector<unsigned> &sbond
+        ,std::vector<unsigned> &dbond) {
     sbond.push_back( aidx.v2 );
     dbond.push_back( aidx.v2 );
 
@@ -817,8 +817,8 @@ void itrnl::RandomCartesian::m_determineangleconnectivity(const angindex &aidx
 };
 
 void itrnl::RandomCartesian::m_determinedihedralconnectivity(const dhlindex &didx
-                                                            ,std::vector<unsigned> &sbond
-                                                            ,std::vector<unsigned> &dbond) {
+        ,std::vector<unsigned> &sbond
+        ,std::vector<unsigned> &dbond) {
     sbond.push_back( didx.v2 );
     dbond.push_back( didx.v3 );
 
@@ -830,7 +830,7 @@ void itrnl::RandomCartesian::m_determinedihedralconnectivity(const dhlindex &did
 void itrnl::RandomCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
     //std::cout << std::endl;
     for (auto b=bidx.begin(); b!=bidx.end(); ++b) {
-        std::cout << "Randomizing Bonds (" << std::distance(bidx.begin(),b) << ")" << std::endl;
+        //std::cout << "Randomizing Bonds (" << std::distance(bidx.begin(),b) << ")" << std::endl;
         unsigned ati1 (b->v1 - 1);
         unsigned ati2 (b->v2 - 1);
 
@@ -839,15 +839,19 @@ void itrnl::RandomCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz,RandomR
 
         m_determinebondconnectivity((*b),sbond,dbond);
 
-        glm::vec3 bvec( glm::normalize( oxyz[ati1] - oxyz[ati2] ) ); // Normalized bond vector
+        //glm::vec3 bvec( glm::normalize( oxyz[ati1] - oxyz[ati2] ) ); // Normalized bond vector
+
+        glm::vec3 bvec( oxyz[ati2] - oxyz[ati1] ); // Normalized bond vector
+        glm::vec3 nvec( glm::normalize( bvec ) ); // Normalized bond vector
 
         float rval;
-        rnGen.setRandomRange(-b->bs,b->bf); // Set range
+        rnGen.setRandomRange(b->bs,b->bf); // Set range
         rnGen.getRandom(rval); // Get random value
 
         /* Transform Bond */
         for (auto& pb : dbond) {
-            oxyz[pb-1] = oxyz[pb-1] + bvec * rval; // Purturb dynamic values
+            oxyz[pb-1] = oxyz[pb-1] - bvec + nvec * rval; // Purturb dynamic values
+            //oxyz[pb-1] = oxyz[pb-1] + bvec * rval; // Purturb dynamic values
         }
     }
 };
@@ -869,9 +873,13 @@ void itrnl::RandomCartesian::m_angtransform(std::vector<glm::vec3> &oxyz,RandomR
         // Compute Rotation Axis
         glm::vec3 axis(glm::cross(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati3]-oxyz[ati2])));
 
+        float angle1( glm::degrees( glm::angle(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati3]-oxyz[ati2])) ) );
+
         float rval;
-        rnGen.setRandomRange(-a->as,a->af); // Set range
+        rnGen.setRandomRange(a->as,a->af); // Set range
         rnGen.getRandom(rval); // Get random value in range
+        rval = angle1 - rval;
+
 
         /* Transform Angle */
         for (auto pa = dbond.begin() + 1; pa != dbond.end(); ++pa) {
@@ -898,9 +906,13 @@ void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,RandomR
         // Compute Rotation Axis
         glm::vec3 axis(glm::cross(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati4]-oxyz[ati3])));
 
+        float angle1( glm::degrees( glm::angle(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati4]-oxyz[ati3])) ) );
+        //float angle ( (d->ds + scanrcnt[scanidx] * d->di) - angle1 );
+
         float rval;
         rnGen.setRandomRange(-d->ds,d->df); // Set range
         rnGen.getRandom(rval); // Get random value in range
+        rval = rval - angle1;
 
         /* Transform Dihedral */
         for (auto pd = dbond.begin() + 1; pd != dbond.end(); ++pd) {
@@ -916,8 +928,7 @@ void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,RandomR
 ---------------------------------------------- **/
 // Class constructor
 itrnl::ScanCartesian::ScanCartesian (const std::string crdsin,const std::string connin,const std::string scanin)
-    : complete(false)
-{
+    : complete(false) {
     m_parsecrdsin(crdsin); // Parse Coordinates
     m_parseconnin(connin); // Parse Connectivity
     m_parsescanin(scanin); // Parse Random DOF
@@ -925,11 +936,19 @@ itrnl::ScanCartesian::ScanCartesian (const std::string crdsin,const std::string 
 
 // Generate a spherical set of random coordinates
 bool itrnl::ScanCartesian::generateNextScanStructure(std::vector<glm::vec3> &oxyz) {
-    if (!complete) {
-        oxyz.clear();
-        oxyz = ixyz;
+    oxyz.clear();
+    oxyz = ixyz;
 
-        m_tranformviaidx(oxyz);
+    //std::cout << "COUNT (" << test << "): ";
+    /*for (auto& i : scanrcnt) {
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;*/
+
+    m_tranformviaidx(oxyz);
+
+    if (!complete) {
+        incScanCounter();
         return false;
     } else {
         return true;
@@ -1000,7 +1019,7 @@ void itrnl::ScanCartesian::m_parsescanin(const std::string &scanin) {
     //std::cout << crdsin << std::endl;
     //std::cout << "-------------------------------------\n";
 
-    regex pattern_bnds("B\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    regex pattern_bnds("B\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.?\\d*)\\s+([-,+]?\\d+\\.?\\d*)\\s+(\\d+\\.?\\d*)");
     if (regex_search(scanin,pattern_bnds)) {
         sregex_iterator items(scanin.begin(),scanin.end(),pattern_bnds);
         sregex_iterator end;
@@ -1018,7 +1037,7 @@ void itrnl::ScanCartesian::m_parsescanin(const std::string &scanin) {
     //    std::cout << "[" << i.v1 << "," << i.v2 << "] - [" << i.bs << "," << i.bf << "]\n";
     //}
 
-    regex pattern_angs("A\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    regex pattern_angs("A\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.?\\d*)\\s+([-,+]?\\d+\\.?\\d*)\\s+(\\d+\\.?\\d*)");
     if (regex_search(scanin,pattern_angs)) {
         sregex_iterator items(scanin.begin(),scanin.end(),pattern_angs);
         sregex_iterator end;
@@ -1037,7 +1056,7 @@ void itrnl::ScanCartesian::m_parsescanin(const std::string &scanin) {
     //    std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "] - [" << i.as << "," << i.af << "]\n";
     //}
 
-    regex pattern_dhls("D\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+([-,+]?\\d+\\.\\d+)\\s+(\\d+\\.\\d+)");
+    regex pattern_dhls("D\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.?\\d*)\\s+([-,+]?\\d+\\.?\\d*)\\s+(\\d+\\.?\\d*)");
     if (regex_search(scanin,pattern_dhls)) {
         sregex_iterator items(scanin.begin(),scanin.end(),pattern_dhls);
         sregex_iterator end;
@@ -1054,6 +1073,12 @@ void itrnl::ScanCartesian::m_parsescanin(const std::string &scanin) {
 
     scanrcnt.resize(bidx.size() + aidx.size() + didx.size(),0);
 
+    cout << endl;
+    cout << "Bond Scans: " << bidx.size() << endl;
+    cout << "Angle Scans: " << aidx.size() << endl;
+    cout << "Dihedral Scans: " << didx.size() << endl;
+    cout << "Total Scans: " << scanrcnt.size() << endl << endl;
+
     for ( auto& b : bidx ) {
         scantcnt.push_back( floor( abs( b.bf - b.bs ) / b.bi ) );
     }
@@ -1068,14 +1093,17 @@ void itrnl::ScanCartesian::m_parsescanin(const std::string &scanin) {
 
     scanidx = 0;
 
-    //std::cout << "DIHEDRALS:" << std::endl;
-    //for (auto&& i : didx) {
-    //    std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "," << i.v4 << "] - [" << i.ds << "," << i.df << "]\n";
-    //}
+    cout << "scantcnt: ";
+    totalstrct = 1;
+    for (auto&& i : scantcnt) {
+        totalstrct = totalstrct * i;
+        cout << i << " ";
+    }
+    cout << " Total: " << totalstrct << endl;
 };
 
 bool itrnl::ScanCartesian::m_searchforidx(unsigned idx
-                                         ,std::vector<unsigned> &carr) {
+        ,std::vector<unsigned> &carr) {
 
     for (auto& c : carr) {
         if (idx == c) {
@@ -1087,7 +1115,7 @@ bool itrnl::ScanCartesian::m_searchforidx(unsigned idx
 }
 
 void itrnl::ScanCartesian::m_searchconnectivity(unsigned catom
-                                               ,std::vector<unsigned> &bond) {
+        ,std::vector<unsigned> &bond) {
     unsigned Nc ( conn1.size() );
     unsigned it (0);
 
@@ -1122,8 +1150,8 @@ void itrnl::ScanCartesian::m_searchconnectivity(unsigned catom
 };
 
 void itrnl::ScanCartesian::m_determinebondconnectivity(const bndindex &bidx
-                                                      ,std::vector<unsigned> &sbond
-                                                      ,std::vector<unsigned> &dbond) {
+        ,std::vector<unsigned> &sbond
+        ,std::vector<unsigned> &dbond) {
     sbond.push_back( bidx.v1 );
     dbond.push_back( bidx.v2 );
 
@@ -1132,8 +1160,8 @@ void itrnl::ScanCartesian::m_determinebondconnectivity(const bndindex &bidx
 };
 
 void itrnl::ScanCartesian::m_determineangleconnectivity(const angindex &aidx
-                                                         ,std::vector<unsigned> &sbond
-                                                         ,std::vector<unsigned> &dbond) {
+        ,std::vector<unsigned> &sbond
+        ,std::vector<unsigned> &dbond) {
     sbond.push_back( aidx.v2 );
     dbond.push_back( aidx.v2 );
 
@@ -1142,8 +1170,8 @@ void itrnl::ScanCartesian::m_determineangleconnectivity(const angindex &aidx
 };
 
 void itrnl::ScanCartesian::m_determinedihedralconnectivity(const dhlindex &didx
-                                                            ,std::vector<unsigned> &sbond
-                                                            ,std::vector<unsigned> &dbond) {
+        ,std::vector<unsigned> &sbond
+        ,std::vector<unsigned> &dbond) {
     sbond.push_back( didx.v2 );
     dbond.push_back( didx.v3 );
 
@@ -1155,7 +1183,7 @@ void itrnl::ScanCartesian::m_determinedihedralconnectivity(const dhlindex &didx
 void itrnl::ScanCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz) {
     //std::cout << std::endl;
     for (auto b=bidx.begin(); b!=bidx.end(); ++b) {
-        std::cout << "Randomizing Bonds (" << std::distance(bidx.begin(),b) << ")" << std::endl;
+        std::cout << "Scanning Bonds (" << std::distance(bidx.begin(),b) << "): " << b->bs + scanrcnt[scanidx] * b->bi << std::endl;
         unsigned ati1 (b->v1 - 1);
         unsigned ati2 (b->v2 - 1);
 
@@ -1164,22 +1192,22 @@ void itrnl::ScanCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz) {
 
         m_determinebondconnectivity((*b),sbond,dbond);
 
-        glm::vec3 bvec( glm::normalize( oxyz[ati1] - oxyz[ati2] ) ); // Normalized bond vector
+        glm::vec3 bvec( oxyz[ati2] - oxyz[ati1] ); // Normalized bond vector
+        glm::vec3 nvec( glm::normalize( bvec ) ); // Normalized bond vector
 
         /* Transform Bond */
         for (auto& pb : dbond) {
-            oxyz[pb-1] = oxyz[pb-1] + bvec * ( b->bs + scanrcnt[scanidx] * b->bi ); // Purturb dynamic values
+            oxyz[pb-1] = oxyz[pb-1] - bvec + nvec * ( b->bs + scanrcnt[scanidx] * b->bi ); // Purturb dynamic values
         }
 
-        incScanCounter(scanidx);
-        ++scanidx;
+        incScanIndex(scanidx);
     }
 };
 
 // Angle Transform
 void itrnl::ScanCartesian::m_angtransform(std::vector<glm::vec3> &oxyz) {
     for (auto a=aidx.begin(); a!=aidx.end(); ++a) {
-        //std::cout << "Randomizing Angles (" << std::distance(aidx.begin(),a) << ")" << std::endl;
+        std::cout << "Scanning Angles (" << std::distance(aidx.begin(),a) << "): " <<  a->as + scanrcnt[scanidx] * a->ai  << std::endl;
         //std::cout << "Angle: [" << a->v1 << "," << a->v2 <<  "," << a->v3 << "] Range: [" << a->as << "," << a->af << "]" << std::endl;
         unsigned ati1 (a->v1 - 1);
         unsigned ati2 (a->v2 - 1);
@@ -1193,22 +1221,26 @@ void itrnl::ScanCartesian::m_angtransform(std::vector<glm::vec3> &oxyz) {
         // Compute Rotation Axis
         glm::vec3 axis(glm::cross(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati3]-oxyz[ati2])));
 
-        float angle ( a->as + scanrcnt[scanidx] * a->ai );
+
+        float angle1( glm::degrees( glm::angle(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati3]-oxyz[ati2])) ) );
+        float angle ( angle1 - (a->as + scanrcnt[scanidx] * a->ai) );
 
         /* Transform Angle */
         for (auto pa = dbond.begin() + 1; pa != dbond.end(); ++pa) {
             oxyz[(*pa)-1] = oxyz[ati2] + glm::rotate( oxyz[(*pa)-1] - oxyz[ati2],glm::radians(angle),axis );
         }
 
-        incScanCounter(scanidx);
-        ++scanidx;
+        //float angle2( glm::degrees( glm::angle(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati3]-oxyz[ati2])) ) );
+        //std::cout << "angle1: " << angle1 << " angle2: " << angle2 << std::endl;
+
+        incScanIndex(scanidx);
     }
 };
 
 // Dihedral Transform
 void itrnl::ScanCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz) {
     for (auto d=didx.begin(); d!=didx.end(); ++d) {
-        //std::cout << "Randomizing Dihedrals (" << std::distance(didx.begin(),d) << ")" << std::endl;
+        std::cout << "Scanning Dihedrals (" << std::distance(didx.begin(),d) << "): " << d->ds + scanrcnt[scanidx] * d->di << std::endl;
         //std::cout << "Dihedral: [" << d->v1 << "," << d->v2 <<  "," << d->v3 <<  "," << d->v4 << "] Range: [" << d->ds << "," << d->df << "]" << std::endl;
         unsigned ati1 (d->v1 - 1);
         unsigned ati2 (d->v2 - 1);
@@ -1223,14 +1255,14 @@ void itrnl::ScanCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz) {
         // Compute Rotation Axis
         glm::vec3 axis(glm::cross(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati4]-oxyz[ati3])));
 
-        float angle ( d->ds + scanrcnt[scanidx] * d->di );
+        float angle1( glm::degrees( glm::angle(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati4]-oxyz[ati3])) ) );
+        float angle ( (d->ds + scanrcnt[scanidx] * d->di) - angle1 );
 
         /* Transform Dihedral */
         for (auto pd = dbond.begin() + 1; pd != dbond.end(); ++pd) {
             oxyz[(*pd)-1] = oxyz[ati3] + glm::rotate( oxyz[(*pd)-1] - oxyz[ati3],glm::radians(angle),axis );
         }
 
-        incScanCounter(scanidx);
-        ++scanidx;
+        incScanIndex(scanidx);
     }
 };

@@ -594,20 +594,35 @@ class ScanCartesian {
     std::vector<unsigned> conn1; // These vectors define the connectivity of the molecule
     std::vector<unsigned> conn2; //
 
+    unsigned totalstrct;
+
     // Increment Scan Counter
-    void incScanCounter (unsigned si) {
-        if (si == scanidx-1) {
-            // Last guy
-            ++scanrcnt[si];
-        } else {
-            if (scanrcnt[si+1] + 1 == scantcnt[si + 1]) {
-                ++scanrcnt[si];
-                scanrcnt[si+1] = 0;
+    void incScanCounter () {
+        for (int i = scanrcnt.size() - 1; i >= 0; --i) {
+            if (scanrcnt[i] == scantcnt[i]-1) {
+                scanrcnt[i] = 0;
+            } else {
+                ++scanrcnt[i];
+                break;
             }
         }
 
-        if (scanrcnt[0] == scantcnt[0]) {
-            complete = true;
+        for (unsigned i = 0;i < scanrcnt.size();++i) {
+            if ( scanrcnt[i] + 1 == scantcnt[i] ) {
+                complete = true;
+            } else {
+                complete = false;
+                break;
+            }
+        }
+    };
+
+    // Increment Scan Index
+    void incScanIndex (unsigned &idx) {
+        if (idx == scanrcnt.size() - 1) {
+            idx = 0;
+        } else {
+            ++idx;
         }
     };
 
