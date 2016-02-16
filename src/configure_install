@@ -1,9 +1,9 @@
-Executable:bin/lib/libInternalCoordinateAPI.so
+Executable:lib/libInternalCoordinateAPI.so
 $c++:
 	compiler:
-		g++
+		g++-4.9
 	flags:
-		-std=c++11 -Wall -fPIC -Wno-strict-aliasing -O3 -I/home/jsmith48/scratch/Gits/g09DNNTSBuilder/include
+		-std=c++11 -Wall -fPIC -Wno-strict-aliasing -Wno-comment -O3 -I../../g09DNNTSBuilder/include
         dir: 
         	none  
         files:
@@ -19,7 +19,7 @@ $cuda:
 $ENDcuda
 $linkerflags:
 	compiler:
-		g++ -shared
+		g++-4.9 -shared
 	flags:
 
 	DONE
