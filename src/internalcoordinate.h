@@ -576,7 +576,7 @@ public:
 ----------------------------------------------*/
 class ScanCartesian {
 
-    std::vector<glm::vec3>   ixyz; // Initial Cartesian Coords
+    std::vector<glm::vec3> ixyz; // Initial Cartesian Coords
 
     unsigned scanidx; // Used to determine which scan is being set
     std::vector<unsigned> scanrcnt; // Running Counter

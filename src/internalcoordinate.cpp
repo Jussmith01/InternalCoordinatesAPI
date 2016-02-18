@@ -1288,7 +1288,7 @@ void itrnl::ScanCartesian::m_angtransform(std::vector<glm::vec3> &oxyz) {
 // Dihedral Transform
 void itrnl::ScanCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz) {
     for (auto d=didx.begin(); d!=didx.end(); ++d) {
-        std::cout << "Scanning Dihedrals (" << std::distance(didx.begin(),d) << "): " << d->ds + scanrcnt[scanidx] * d->di;
+        std::cout << "Scanning Dihedrals (" << std::distance(didx.begin(),d) << "): " << d->ds + scanrcnt[scanidx] * d->di << std::endl;
         //std::cout << "Dihedral: [" << d->v1 << "," << d->v2 <<  "," << d->v3 <<  "," << d->v4 << "] Range: [" << d->ds << "," << d->df << "]" << std::endl;
         unsigned ati1 (d->v1 - 1);
         unsigned ati2 (d->v2 - 1);
@@ -1318,7 +1318,7 @@ void itrnl::ScanCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz) {
         float iang ( glm::degrees( glm::angle(glm::normalize(ap1perp),glm::normalize(ap2perp)) ) );
         float sang (-(d->ds + scanrcnt[scanidx] * d->di) + iang);
 
-        std::cout << " iangle: " << iang << " sangle: " << sang;
+        //std::cout << " iangle: " << iang << " sangle: " << sang;
 
         /* Transform Dihedral */
         for (auto pd = dbond.begin() + 1; pd != dbond.end(); ++pd) {
