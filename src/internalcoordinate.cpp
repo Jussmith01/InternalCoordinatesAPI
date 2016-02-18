@@ -891,8 +891,6 @@ void itrnl::RandomCartesian::m_angtransform(std::vector<glm::vec3> &oxyz,RandomR
 // Dihedral Transform
 void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
     for (auto d=didx.begin(); d!=didx.end(); ++d) {
-        //std::cout << "Randomizing Dihedrals (" << std::distance(didx.begin(),d) << ")" << std::endl;
-        //std::cout << "Dihedral: [" << d->v1 << "," << d->v2 <<  "," << d->v3 <<  "," << d->v4 << "] Range: [" << d->ds << "," << d->df << "]" << std::endl;
         unsigned ati1 (d->v1 - 1);
         unsigned ati2 (d->v2 - 1);
         unsigned ati3 (d->v3 - 1);
@@ -903,21 +901,71 @@ void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,RandomR
 
         m_determinedihedralconnectivity((*d),sbond,dbond);
 
-        // Compute Rotation Axis
-        glm::vec3 axis(glm::cross(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati4]-oxyz[ati3])));
+        // Compute Rotation Axis (2-3 Bond)
+        glm::vec3 axis( glm::normalize( oxyz[ati2] - oxyz[ati3] ) );
 
-        float angle1( glm::degrees( glm::angle(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati4]-oxyz[ati3])) ) );
-        //float angle ( (d->ds + scanrcnt[scanidx] * d->di) - angle1 );
+        // Get bond vec from 2 to dynamic atom
+        glm::vec3 ap1(oxyz[ati1] - oxyz[ati2]);
+        glm::vec3 ap2(oxyz[ati4] - oxyz[ati3]);
+
+        // Break into parallel and perpendicular components
+        glm::vec3 ap1para( glm::dot(ap1,axis) * axis );
+        glm::vec3 ap1perp( ap1 - ap1para );
+
+        glm::vec3 ap2para( glm::dot(ap2,axis) * axis );
+        glm::vec3 ap2perp( ap2 - ap2para );
+
+        /* Compute Initial Angle */
+        float iang ( glm::degrees( glm::angle(glm::normalize(ap1perp),glm::normalize(ap2perp)) ) );
 
         float rval;
         rnGen.setRandomRange(-d->ds,d->df); // Set range
         rnGen.getRandom(rval); // Get random value in range
-        rval = rval - angle1;
+        rval = rval - iang;
+
+        float sang (-rval + iang);
+
+        //std::cout << " iangle: " << iang << " sangle: " << sang;
 
         /* Transform Dihedral */
         for (auto pd = dbond.begin() + 1; pd != dbond.end(); ++pd) {
-            oxyz[(*pd)-1] = oxyz[ati3] + glm::rotate( oxyz[(*pd)-1] - oxyz[ati3],glm::radians(rval),axis );
+
+            unsigned didx( (*pd)-1 );
+
+            // Get bond vec from 2 to dynamic atom
+            glm::vec3 a(oxyz[didx] - oxyz[ati2]);
+
+            // Break into parallel and perpendicular components
+            glm::vec3 apara( glm::dot(a,axis) * axis );
+            glm::vec3 aperp( a - apara );
+
+            a = glm::rotate( aperp,glm::radians( sang ),axis );
+
+            //float anglet( glm::degrees( glm::angle(glm::normalize(aperp),glm::normalize(a)) ) );
+            //std::cout << " anglet: " << anglet;
+
+            oxyz[didx] = a + apara + oxyz[ati2];
         }
+
+        /*std::cout << " d1: " << glm::length(oxyz[1]-oxyz[0])
+                  << " d2: " << glm::length(oxyz[2]-oxyz[0])
+                  << " d3: " << glm::length(oxyz[2]-oxyz[1])*/
+
+        // Get bond vec from 2 to dynamic atom
+        //glm::vec3 a1(oxyz[ati1] - oxyz[ati2]);
+        //glm::vec3 a2(oxyz[ati4] - oxyz[ati3]);
+
+        // Break into parallel and perpendicular components
+        //glm::vec3 a1para( glm::dot(a1,axis) * axis );
+        //glm::vec3 a1perp( a1 - a1para );
+
+        //glm::vec3 a2para( glm::dot(a2,axis) * axis );
+        //glm::vec3 a2perp( a2 - a2para );
+
+        //float angle2( glm::degrees( glm::angle(glm::normalize(a1perp),glm::normalize(a2perp)) ) );
+        //std::cout << " angle2: " << angle2;
+
+        //std::cout << " d3: " << glm::length(oxyz[ati1]-oxyz[ati4]) << std::endl;
     }
 };
 
@@ -1240,7 +1288,7 @@ void itrnl::ScanCartesian::m_angtransform(std::vector<glm::vec3> &oxyz) {
 // Dihedral Transform
 void itrnl::ScanCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz) {
     for (auto d=didx.begin(); d!=didx.end(); ++d) {
-        std::cout << "Scanning Dihedrals (" << std::distance(didx.begin(),d) << "): " << d->ds + scanrcnt[scanidx] * d->di << std::endl;
+        std::cout << "Scanning Dihedrals (" << std::distance(didx.begin(),d) << "): " << d->ds + scanrcnt[scanidx] * d->di;
         //std::cout << "Dihedral: [" << d->v1 << "," << d->v2 <<  "," << d->v3 <<  "," << d->v4 << "] Range: [" << d->ds << "," << d->df << "]" << std::endl;
         unsigned ati1 (d->v1 - 1);
         unsigned ati2 (d->v2 - 1);
@@ -1252,16 +1300,65 @@ void itrnl::ScanCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz) {
 
         m_determinedihedralconnectivity((*d),sbond,dbond);
 
-        // Compute Rotation Axis
-        glm::vec3 axis(glm::cross(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati4]-oxyz[ati3])));
+        // Compute Rotation Axis (2-3 Bond)
+        glm::vec3 axis( glm::normalize( oxyz[ati2] - oxyz[ati3] ) );
 
-        float angle1( glm::degrees( glm::angle(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati4]-oxyz[ati3])) ) );
-        float angle ( (d->ds + scanrcnt[scanidx] * d->di) - angle1 );
+        // Get bond vec from 2 to dynamic atom
+        glm::vec3 ap1(oxyz[ati1] - oxyz[ati2]);
+        glm::vec3 ap2(oxyz[ati4] - oxyz[ati3]);
+
+        // Break into parallel and perpendicular components
+        glm::vec3 ap1para( glm::dot(ap1,axis) * axis );
+        glm::vec3 ap1perp( ap1 - ap1para );
+
+        glm::vec3 ap2para( glm::dot(ap2,axis) * axis );
+        glm::vec3 ap2perp( ap2 - ap2para );
+
+        /* Compute Initial Angle */
+        float iang ( glm::degrees( glm::angle(glm::normalize(ap1perp),glm::normalize(ap2perp)) ) );
+        float sang (-(d->ds + scanrcnt[scanidx] * d->di) + iang);
+
+        std::cout << " iangle: " << iang << " sangle: " << sang;
 
         /* Transform Dihedral */
         for (auto pd = dbond.begin() + 1; pd != dbond.end(); ++pd) {
-            oxyz[(*pd)-1] = oxyz[ati3] + glm::rotate( oxyz[(*pd)-1] - oxyz[ati3],glm::radians(angle),axis );
+
+            unsigned didx( (*pd)-1 );
+
+            // Get bond vec from 2 to dynamic atom
+            glm::vec3 a(oxyz[didx] - oxyz[ati2]);
+
+            // Break into parallel and perpendicular components
+            glm::vec3 apara( glm::dot(a,axis) * axis );
+            glm::vec3 aperp( a - apara );
+
+            a = glm::rotate( aperp,glm::radians( sang ),axis );
+
+            //float anglet( glm::degrees( glm::angle(glm::normalize(aperp),glm::normalize(a)) ) );
+            //std::cout << " anglet: " << anglet;
+
+            oxyz[didx] = a + apara + oxyz[ati2];
         }
+
+        /*std::cout << " d1: " << glm::length(oxyz[1]-oxyz[0])
+                  << " d2: " << glm::length(oxyz[2]-oxyz[0])
+                  << " d3: " << glm::length(oxyz[2]-oxyz[1])*/
+
+        // Get bond vec from 2 to dynamic atom
+        //glm::vec3 a1(oxyz[ati1] - oxyz[ati2]);
+        //glm::vec3 a2(oxyz[ati4] - oxyz[ati3]);
+
+        // Break into parallel and perpendicular components
+        //glm::vec3 a1para( glm::dot(a1,axis) * axis );
+        //glm::vec3 a1perp( a1 - a1para );
+
+        //glm::vec3 a2para( glm::dot(a2,axis) * axis );
+        //glm::vec3 a2perp( a2 - a2para );
+
+        //float angle2( glm::degrees( glm::angle(glm::normalize(a1perp),glm::normalize(a2perp)) ) );
+        //std::cout << " angle2: " << angle2;
+
+        //std::cout << " d3: " << glm::length(oxyz[ati1]-oxyz[ati4]) << std::endl;
 
         incScanIndex(scanidx);
     }

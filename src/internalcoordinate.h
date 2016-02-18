@@ -79,7 +79,7 @@
 #include <utility>
 
 // GLM Vector Math
-//#define GLM_FORCE_RADIANS
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/vector_angle.hpp>
