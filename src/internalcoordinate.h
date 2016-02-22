@@ -556,8 +556,14 @@ public:
     // Generate a set of spherical random coordinates
     void generateRandomCoordsSpherical(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
 
-        // Generate a set of boxed random coordinates
+    // Generate a set of boxed random coordinates
     void generateRandomCoordsBox(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
+
+    // Generate a set of random coordinates based on a random force
+    void generateRandomCoordsForce(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
+
+    // Generate a set of random coords based on dist matrix
+    void generateRandomCoordsDistmat(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
 
     // Get the input types
     std::vector<std::string> getitype() {

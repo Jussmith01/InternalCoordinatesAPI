@@ -12,6 +12,10 @@
 #include <iomanip>
 #include <iterator>
 
+// Eigen stuff
+#include <Eigen/Core>
+#include <Eigen/Eigenvalues>
+
 // Namespace header
 #include "internalcoordinate.h"
 
@@ -614,7 +618,10 @@ void itrnl::RandomCartesian::generateRandomCoordsSpherical(std::vector<glm::vec3
 // Generate a set of boxed random coordinates
 void itrnl::RandomCartesian::generateRandomCoordsBox(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
     oxyz.clear();
-    oxyz.resize(ixyz.size());
+    oxyz = ixyz;
+
+    //std::cout << "TRANSFORM" << std::endl;
+    m_tranformviaidx(oxyz,rnGen);
 
     for (unsigned i = 0; i < oxyz.size(); ++i) {
 
@@ -627,6 +634,198 @@ void itrnl::RandomCartesian::generateRandomCoordsBox(std::vector<glm::vec3> &oxy
         rnGen.setRandomRange(ixyz[i].z - irnd[i],ixyz[i].z + irnd[i]);
         rnGen.getRandom(oxyz[i].z);
     }
+};
+
+unsigned nsum(unsigned n) {
+    return ( n * ( n - 1 ) )/ 2;
+};
+
+unsigned indexTriangle(unsigned i, unsigned j, unsigned n) {
+
+    /* Error Checking */
+    /*if (i==j) {
+        dnntsErrorcatch(std::string("Index i cannot equal j!"));
+    }*/
+
+    unsigned I,J;
+
+    /* Symmetry of Matrix */
+    if (j < i) {
+        I = j;
+        J = i;
+    } else {
+        I = i;
+        J = j;
+    }
+
+    /* Return linear index */
+    return nsum(n) - nsum(n-I) + J - I - 1;
+};
+
+// Generate a set of boxed random coordinates
+void itrnl::RandomCartesian::generateRandomCoordsForce(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+    using namespace std;
+
+    oxyz.clear();
+    oxyz = ixyz;
+
+    //std::cout << "TRANSFORM" << std::endl;
+    m_tranformviaidx(oxyz,rnGen);
+
+    unsigned Na( oxyz.size() ); // Number of atoms
+    unsigned Nf( nsum(oxyz.size()) ); // Number of Forces
+
+    vector<glm::vec3> F(Nf); // Forces
+
+    /* Compute Random Force */
+    for (unsigned i = 0; i < Na; ++i) {
+        for (unsigned j = i + 1; j < Na; ++j) {
+
+            /* Index */
+            unsigned idx( indexTriangle(i,j,Na) );
+
+            /* Get Random Number */
+            float rn;
+            rnGen.setRandomRange(-irnd[i],irnd[i]);
+            rnGen.getRandom( rn );
+
+            /* Compute Random Force */
+            F[idx] = rn * glm::normalize( oxyz[i] - oxyz[j] ) / static_cast<float>(Na);
+
+            //cout << "(" << i << "," << j << ") IDX: " << idx << " F: [" << F[idx].x << "," << F[idx].y << "," << F[idx].z << "]" << endl;
+        }
+    }
+
+    for (unsigned i = 0; i < Na; ++i) {
+
+        /* ith force vector */
+        glm::vec3 Fi(glm::vec3(0.0f,0.0f,0.0f));
+
+        /* Compute ith force vector */
+        for (unsigned j = 0; j < Na; ++j) {
+
+            if (i != j) {
+                unsigned idx ( indexTriangle(i,j,Na) );
+
+                if (i < j) {
+                    Fi += F[idx];
+                } else {
+                    Fi -= F[idx];
+                }
+            }
+        }
+
+        /* Purturb ith Atom by Fi */
+        oxyz[i] += Fi;
+        //cout.setf( std::ios::fixed,std::ios::floatfield );
+        //cout << "(" << i << ") Pi: [" << std::setprecision(6) << oxyz[i].x << "," << oxyz[i].y << "," << oxyz[i].z << "]" << endl;
+    }
+};
+
+// Generate a set of boxed random coordinates
+void itrnl::RandomCartesian::generateRandomCoordsDistmat(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+    using namespace std;
+
+    oxyz.clear();
+    oxyz = ixyz;
+
+    //std::cout << "TRANSFORM" << std::endl;
+    m_tranformviaidx(oxyz,rnGen);
+
+    unsigned Na( oxyz.size() ); // Number of atoms
+
+    /* Compute Distance Matrix */
+    for (unsigned i = 0; i < Na; ++i) {
+        for (unsigned j = i; j < Na; ++j) {
+            if (i != j) {
+                glm::vec3 rij( oxyz[i] - oxyz[j] );
+
+                /* Normalize rij */
+                rij = glm::normalize(rij);
+
+                /* Set Random Range */
+                float rr ( ( irnd[i] + irnd[j] ) / 2.0f );
+                rnGen.setRandomRange(-rr,rr);
+
+                /* Get Random Number */
+                float rn; // Random Number
+                rnGen.getRandom( rn );
+
+                /* Purturb Bond */
+                oxyz[i] = oxyz[i] + rn * rij;
+                oxyz[j] = oxyz[j] - rn * rij;
+            }
+        }
+    }
+
+    Eigen::MatrixXd D(Na, Na); // Distance Matrix
+
+    /* Compute Distance Matrix */
+    for (unsigned i = 0; i < Na; ++i) {
+        for (unsigned j = i; j < Na; ++j) {
+            if (i != j) {
+                /* Get initial length */
+                double ri ( glm::length( oxyz[i] - oxyz[j] ) );
+
+                /* Store to retain symmetry */
+                D(i, j) = D(j, i) = ri;
+            } else {
+                /* Diagonal elements always 0 */
+                D(i, j) = 0.0;
+            }
+        }
+    }
+
+    Eigen::MatrixXd M(Na, Na); // Decomp Matrix
+
+    /* Compute Matrix M */
+    for (unsigned i = 0; i < Na; ++i) {
+        for (unsigned j = i; j < Na; ++j) {
+            M(i, j) = M(j, i) = ( D(0, j) * D(0, j) + D(i, 0) * D(i, 0) - D(i, j) * D(i, j) ) / 2.0f;
+        }
+    }
+
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(M);
+
+    Eigen::MatrixXd S = es.eigenvalues().asDiagonal();
+    Eigen::MatrixXd U = es.eigenvectors();
+
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> esD(D);
+
+    Eigen::MatrixXd DS = esD.eigenvalues().asDiagonal();
+    Eigen::MatrixXd DU = esD.eigenvectors();
+
+    //cout.setf(std::ios::fixed,std::ios::floatfield);
+    //cout << "\n|----------------------------------|" << endl;
+    //cout << "The Elements of D are:" << endl << std::setprecision(10) << D << endl;
+
+    //cout << "The Elements of M are:" << endl << std::setprecision(10) << M << endl;
+    //cout << "The eigenvalues of M are:" << endl << std::setprecision(10) << S << endl;
+    //cout << "The matrix of eigenvectors, M, is:" << endl << std::setprecision(10) << U << endl << endl;
+
+    for (unsigned i = 0; i < Na; ++i) {
+        if (abs(S(i, i)) < 1.0e-6) {
+            S(i, i) = 0.0;
+        }
+
+        S(i, i) = sqrt( S(i, i) );
+    }
+    //cout << "The sqrt eigenvalues of M are:" << endl << std::setprecision(10) << S << endl;
+
+    Eigen::MatrixXd X =  U * S;
+    //cout << "The Computed Positions are:" << endl << std::setprecision(10) << X << endl;
+
+    /* Determine zero column*/
+
+
+    /*Eigen::MatrixXf Dt(Na, Na)
+    for (unsigned i = 0; i < Na; ++i) {
+        for (unsigned j = 0; j < Na; ++j) {
+            Dt(i, i) = glm::length(oxyz[i] - oxyz[j]);
+        }
+    }
+
+    cout << "Distance Matrix Test: " << endl << std::setprecision(6) << X << endl;*/
 };
 
 /** MEMBER FUNCTIONS **/
