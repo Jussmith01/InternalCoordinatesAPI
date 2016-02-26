@@ -565,6 +565,8 @@ public:
     // Generate a set of random coords based on dist matrix
     void generateRandomCoordsDistmat(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
 
+    unsigned getNa () {return ixyz.size();};
+
     // Get the input types
     std::vector<std::string> getitype() {
         return ityp;
