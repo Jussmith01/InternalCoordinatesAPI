@@ -685,6 +685,12 @@ public:
     // Generate a set of spherical random coordinates
     bool generateNextScanStructure(std::vector<glm::vec3> &oxyz);
 
+    /* Return number of atoms */
+    unsigned getNa () {return ixyz.size();};
+
+    /* Return number of atoms */
+    unsigned getScanCount () {return totalstrct;};
+
     // Get the input types
     std::vector<std::string> getitype() {
         return ityp;
