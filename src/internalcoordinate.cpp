@@ -1124,8 +1124,6 @@ void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,RandomR
 
         float sang (-rval + iang);
 
-        //std::cout << " iangle: " << iang << " sangle: " << sang;
-
         /* Transform Dihedral */
         for (auto pd = dbond.begin() + 1; pd != dbond.end(); ++pd) {
 
@@ -1140,31 +1138,8 @@ void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,RandomR
 
             a = glm::rotate( aperp,glm::radians( sang ),axis );
 
-            //float anglet( glm::degrees( glm::angle(glm::normalize(aperp),glm::normalize(a)) ) );
-            //std::cout << " anglet: " << anglet;
-
             oxyz[didx] = a + apara + oxyz[ati2];
         }
-
-        /*std::cout << " d1: " << glm::length(oxyz[1]-oxyz[0])
-                  << " d2: " << glm::length(oxyz[2]-oxyz[0])
-                  << " d3: " << glm::length(oxyz[2]-oxyz[1])*/
-
-        // Get bond vec from 2 to dynamic atom
-        //glm::vec3 a1(oxyz[ati1] - oxyz[ati2]);
-        //glm::vec3 a2(oxyz[ati4] - oxyz[ati3]);
-
-        // Break into parallel and perpendicular components
-        //glm::vec3 a1para( glm::dot(a1,axis) * axis );
-        //glm::vec3 a1perp( a1 - a1para );
-
-        //glm::vec3 a2para( glm::dot(a2,axis) * axis );
-        //glm::vec3 a2perp( a2 - a2para );
-
-        //float angle2( glm::degrees( glm::angle(glm::normalize(a1perp),glm::normalize(a2perp)) ) );
-        //std::cout << " angle2: " << angle2;
-
-        //std::cout << " d3: " << glm::length(oxyz[ati1]-oxyz[ati4]) << std::endl;
     }
 };
 
@@ -1477,9 +1452,6 @@ void itrnl::ScanCartesian::m_angtransform(std::vector<glm::vec3> &oxyz) {
             oxyz[(*pa)-1] = oxyz[ati2] + glm::rotate( oxyz[(*pa)-1] - oxyz[ati2],glm::radians(angle),axis );
         }
 
-        //float angle2( glm::degrees( glm::angle(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati3]-oxyz[ati2])) ) );
-        //std::cout << "angle1: " << angle1 << " angle2: " << angle2 << std::endl;
-
         incScanIndex(scanidx);
     }
 };
@@ -1533,31 +1505,8 @@ void itrnl::ScanCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz) {
 
             a = glm::rotate( aperp,glm::radians( sang ),axis );
 
-            //float anglet( glm::degrees( glm::angle(glm::normalize(aperp),glm::normalize(a)) ) );
-            //std::cout << " anglet: " << anglet;
-
             oxyz[didx] = a + apara + oxyz[ati2];
         }
-
-        /*std::cout << " d1: " << glm::length(oxyz[1]-oxyz[0])
-                  << " d2: " << glm::length(oxyz[2]-oxyz[0])
-                  << " d3: " << glm::length(oxyz[2]-oxyz[1])*/
-
-        // Get bond vec from 2 to dynamic atom
-        //glm::vec3 a1(oxyz[ati1] - oxyz[ati2]);
-        //glm::vec3 a2(oxyz[ati4] - oxyz[ati3]);
-
-        // Break into parallel and perpendicular components
-        //glm::vec3 a1para( glm::dot(a1,axis) * axis );
-        //glm::vec3 a1perp( a1 - a1para );
-
-        //glm::vec3 a2para( glm::dot(a2,axis) * axis );
-        //glm::vec3 a2perp( a2 - a2para );
-
-        //float angle2( glm::degrees( glm::angle(glm::normalize(a1perp),glm::normalize(a2perp)) ) );
-        //std::cout << " angle2: " << angle2;
-
-        //std::cout << " d3: " << glm::length(oxyz[ati1]-oxyz[ati4]) << std::endl;
 
         incScanIndex(scanidx);
     }

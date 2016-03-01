@@ -567,6 +567,16 @@ public:
 
     unsigned getNa () {return ixyz.size();};
 
+    // Get the input coords
+    std::vector<glm::vec3> getixyz() {
+        return ixyz;
+    };
+
+    // Set the input coords
+    void setixyz(std::vector<glm::vec3> & xyz) {
+        ixyz = xyz;
+    };
+
     // Get the input types
     std::vector<std::string> getitype() {
         return ityp;
