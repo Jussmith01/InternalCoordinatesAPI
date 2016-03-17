@@ -905,12 +905,12 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
         }
     }
 
-    //std::cout << "BONDS:" << std::endl;
-    //for (auto&& i : bidx) {
-    //    std::cout << "[" << i.v1 << "," << i.v2 << "] - [" << i.bs << "," << i.bf << "]\n";
-    //}
+    std::cout << " Detected Random Bonds:" << std::endl;
+    for (auto&& i : bidx) {
+        std::cout << "[" << i.v1 << "," << i.v2 << "] - [" << i.bs << "," << i.bf << "]\n";
+    }
 
-    regex pattern_angs("A\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.?\\d*)\\s+([-,+]?\\d+\\?\\d*)");
+    regex pattern_angs("A\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+.?\\d*)\\s+([-,+]?\\d+.?\\d*)");
     if (regex_search(randin,pattern_angs)) {
         sregex_iterator items(randin.begin(),randin.end(),pattern_angs);
         sregex_iterator end;
@@ -923,10 +923,10 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
         }
     }
 
-    //std::cout << "ANGLES:" << std::endl;
-    //for (auto&& i : aidx) {
-    //    std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "] - [" << i.as << "," << i.af << "]\n";
-    //}
+    std::cout << " Detected Random Angles:" << std::endl;
+    for (auto&& i : aidx) {
+        std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "] - [" << i.as << "," << i.af << "]\n";
+    }
 
     regex pattern_dhls("D\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+([-,+]?\\d+\\.?\\d*)\\s+([-,+]?\\d+\\.?\\d*)");
     if (regex_search(randin,pattern_dhls)) {
@@ -942,10 +942,10 @@ void itrnl::RandomCartesian::m_parserandin(const std::string &randin) {
         }
     }
 
-    //std::cout << "DIHEDRALS:" << std::endl;
-    //for (auto&& i : didx) {
-    //    std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "," << i.v4 << "] - [" << i.ds << "," << i.df << "]\n";
-    //}
+    std::cout << " Detected Random Dihedrals:" << std::endl;
+    for (auto&& i : didx) {
+        std::cout << "[" << i.v1 << "," << i.v2 << "," << i.v3 << "," << i.v4 << "] - [" << i.ds << "," << i.df << "]\n";
+    }
 };
 
 bool itrnl::RandomCartesian::m_searchforidx(unsigned idx
