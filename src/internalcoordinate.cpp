@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
+#include <random>
 #include <iterator>
 
 // Eigen stuff
@@ -584,28 +585,27 @@ itrnl::RandomCartesian::RandomCartesian (const std::string crdsin,const std::str
 };
 
 // Generate a spherical set of random coordinates
-void itrnl::RandomCartesian::generateRandomCoordsSpherical(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+void itrnl::RandomCartesian::generateRandomCoordsSpherical(std::vector<glm::vec3> &oxyz,std::mt19937& rgenerator) {
     oxyz.clear();
     oxyz = ixyz;
 
     //std::cout << "TRANSFORM" << std::endl;
-    m_tranformviaidx(oxyz,rnGen);
+    m_tranformviaidx(oxyz,rgenerator);
 
-    float theta,Z,R;
+    std::uniform_real_distribution<float> Zdistribution(-1.0f,1.0f);
+    std::uniform_real_distribution<float> Tdistribution(0.0f,2.0f * M_PI);
+    std::uniform_real_distribution<float> Rdistribution;
+
+    float T,Z,R;
     //std::cout << "RANDOMIZE" << std::endl;
     for (unsigned i = 0; i < oxyz.size(); ++i) {
         // Compute a random vector
-        rnGen.setRandomRange(-1.0f,1.0f);
-        rnGen.getRandom(Z);
+        Z = Zdistribution(rgenerator);
+        T = Tdistribution(rgenerator);
+        R = Rdistribution(rgenerator,std::uniform_real_distribution<float>::param_type(0.0f,irnd[i]));
 
-        rnGen.setRandomRange(0.0f,2.0f * M_PI);
-        rnGen.getRandom(theta);
-
-        rnGen.setRandomRange(0.0,irnd[i]);
-        rnGen.getRandom(R);
-
-        float x ( sqrt(1.0f-Z*Z) * cos(theta) );
-        float y ( sqrt(1.0f-Z*Z) * sin(theta) );
+        float x ( sqrt(1.0f-Z*Z) * cos(T) );
+        float y ( sqrt(1.0f-Z*Z) * sin(T) );
         float z ( Z );
 
         glm::vec3 Rvec( R * glm::normalize( glm::vec3(x,y,z) ) );
@@ -621,7 +621,7 @@ void itrnl::RandomCartesian::generateRandomCoordsBox(std::vector<glm::vec3> &oxy
     oxyz = ixyz;
 
     //std::cout << "TRANSFORM" << std::endl;
-    m_tranformviaidx(oxyz,rnGen);
+    //m_tranformviaidx(oxyz,rnGen);
 
     for (unsigned i = 0; i < oxyz.size(); ++i) {
 
@@ -670,7 +670,7 @@ void itrnl::RandomCartesian::generateRandomCoordsForce(std::vector<glm::vec3> &o
     oxyz = ixyz;
 
     //std::cout << "TRANSFORM" << std::endl;
-    m_tranformviaidx(oxyz,rnGen);
+    //m_tranformviaidx(oxyz,rnGen);
 
     unsigned Na( oxyz.size() ); // Number of atoms
     unsigned Nf( nsum(oxyz.size()) ); // Number of Forces
@@ -730,7 +730,7 @@ void itrnl::RandomCartesian::generateRandomCoordsDistmat(std::vector<glm::vec3> 
     oxyz = ixyz;
 
     //std::cout << "TRANSFORM" << std::endl;
-    m_tranformviaidx(oxyz,rnGen);
+    //m_tranformviaidx(oxyz,rnGen);
 
     unsigned Na( oxyz.size() ); // Number of atoms
 
@@ -1026,7 +1026,7 @@ void itrnl::RandomCartesian::m_determinedihedralconnectivity(const dhlindex &did
 };
 
 // Bond tranform
-void itrnl::RandomCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+void itrnl::RandomCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz,std::mt19937& rgenerator) {
     //std::cout << std::endl;
     for (auto b=bidx.begin(); b!=bidx.end(); ++b) {
         //std::cout << "Randomizing Bonds (" << std::distance(bidx.begin(),b) << ")" << std::endl;
@@ -1043,9 +1043,12 @@ void itrnl::RandomCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz,RandomR
         glm::vec3 bvec( oxyz[ati2] - oxyz[ati1] ); // Normalized bond vector
         glm::vec3 nvec( glm::normalize( bvec ) ); // Normalized bond vector
 
-        float rval;
-        rnGen.setRandomRange(b->bs,b->bf); // Set range
-        rnGen.getRandom(rval); // Get random value
+        //float rval;
+        //rnGen.setRandomRange(b->bs,b->bf); // Set range
+        //rnGen.getRandom(rval); // Get random value
+
+        std::uniform_real_distribution<float> distribution(b->bs,b->bf);
+        float rval ( distribution(rgenerator) );
 
         /* Transform Bond */
         for (auto& pb : dbond) {
@@ -1056,7 +1059,7 @@ void itrnl::RandomCartesian::m_bndtransform(std::vector<glm::vec3> &oxyz,RandomR
 };
 
 // Angle Transform
-void itrnl::RandomCartesian::m_angtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+void itrnl::RandomCartesian::m_angtransform(std::vector<glm::vec3> &oxyz,std::mt19937& rgenerator) {
     for (auto a=aidx.begin(); a!=aidx.end(); ++a) {
         //std::cout << "Randomizing Angles (" << std::distance(aidx.begin(),a) << ")" << std::endl;
         //std::cout << "Angle: [" << a->v1 << "," << a->v2 <<  "," << a->v3 << "] Range: [" << a->as << "," << a->af << "]" << std::endl;
@@ -1074,11 +1077,13 @@ void itrnl::RandomCartesian::m_angtransform(std::vector<glm::vec3> &oxyz,RandomR
 
         float angle1( glm::degrees( glm::angle(glm::normalize(oxyz[ati1]-oxyz[ati2]),glm::normalize(oxyz[ati3]-oxyz[ati2])) ) );
 
-        float rval;
-        rnGen.setRandomRange(a->as,a->af); // Set range
-        rnGen.getRandom(rval); // Get random value in range
-        rval = angle1 - rval;
+        //float rval;
+        //rnGen.setRandomRange(a->as,a->af); // Set range
+        //rnGen.getRandom(rval); // Get random value in range
 
+        std::uniform_real_distribution<float> distribution(a->as,a->af);
+        float rval ( distribution(rgenerator) );
+        rval = angle1 - rval;
 
         /* Transform Angle */
         for (auto pa = dbond.begin() + 1; pa != dbond.end(); ++pa) {
@@ -1088,7 +1093,7 @@ void itrnl::RandomCartesian::m_angtransform(std::vector<glm::vec3> &oxyz,RandomR
 };
 
 // Dihedral Transform
-void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
+void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,std::mt19937& rgenerator) {
     for (auto d=didx.begin(); d!=didx.end(); ++d) {
         unsigned ati1 (d->v1 - 1);
         unsigned ati2 (d->v2 - 1);
@@ -1117,9 +1122,12 @@ void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,RandomR
         /* Compute Initial Angle */
         float iang ( glm::degrees( glm::angle(glm::normalize(ap1perp),glm::normalize(ap2perp)) ) );
 
-        float rval;
-        rnGen.setRandomRange(-d->ds,d->df); // Set range
-        rnGen.getRandom(rval); // Get random value in range
+       //float rval;
+        //rnGen.setRandomRange(-d->ds,d->df); // Set range
+        //rnGen.getRandom(rval); // Get random value in range
+
+        std::uniform_real_distribution<float> distribution(-d->ds,d->df);
+        float rval ( distribution(rgenerator) );
         rval = rval - iang;
 
         float sang (-rval + iang);

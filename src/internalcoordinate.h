@@ -76,6 +76,7 @@
 #include "randnormflt.h"
 #include <fstream>
 #include <regex>
+#include <random>
 #include <utility>
 
 // GLM Vector Math
@@ -515,19 +516,19 @@ class RandomCartesian {
     void m_parserandin(const std::string &randin);
 
     // Bond tranform
-    void m_bndtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
+    void m_bndtransform(std::vector<glm::vec3> &oxyz,std::mt19937& rgenerator);
 
     // Angle Transform
-    void m_angtransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
+    void m_angtransform(std::vector<glm::vec3> &oxyz,std::mt19937& rgenerator);
 
     // Dihedral Transform
-    void m_dhltransform(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
+    void m_dhltransform(std::vector<glm::vec3> &oxyz,std::mt19937& rgenerator);
 
     // transform molecule based on index data
-    void m_tranformviaidx(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
-        m_bndtransform(oxyz,rnGen);
-        m_angtransform(oxyz,rnGen);
-        m_dhltransform(oxyz,rnGen);
+    void m_tranformviaidx(std::vector<glm::vec3> &oxyz,std::mt19937& rgenerator) {
+        m_bndtransform(oxyz,rgenerator);
+        m_angtransform(oxyz,rgenerator);
+        m_dhltransform(oxyz,rgenerator);
     };
 
     bool m_searchforidx(unsigned idx
@@ -554,7 +555,7 @@ public:
     RandomCartesian (const std::string crdsin,const std::string connin,const std::string randin);
 
     // Generate a set of spherical random coordinates
-    void generateRandomCoordsSpherical(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
+    void generateRandomCoordsSpherical(std::vector<glm::vec3> &oxyz,std::mt19937& rgenerator);
 
     // Generate a set of boxed random coordinates
     void generateRandomCoordsBox(std::vector<glm::vec3> &oxyz,RandomReal &rnGen);
