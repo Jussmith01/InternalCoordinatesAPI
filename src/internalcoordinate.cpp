@@ -21,6 +21,23 @@
 
 #define Rad 180.0/M_PI; /*radians to degrees*/
 
+/*----------------------------------------------
+                 Fatal Error
+    Aborts runtime with location and _error
+    text if called.
+-----------------------------------------------*/
+#define FatalError(_error)                            \
+{                                                     \
+    std::stringstream _location,_message;             \
+    _location << __FILE__ << ":" << __LINE__;         \
+    _message << "Error -- "+ _error;             \
+    std::cerr << "File "                              \
+              << _location.str() << "\n"              \
+              << _message.str() << "\n"               \
+              << "Aborting!" << "\n";                 \
+    exit(EXIT_FAILURE);                               \
+};
+
 /****************************************
 
     itrnl::t_ICRandRng functions
@@ -615,6 +632,38 @@ void itrnl::RandomCartesian::generateRandomCoordsSpherical(std::vector<glm::vec3
     //std::cout << "END" << std::endl;
 };
 
+// Generate a spherical set of random coordinates
+/*void itrnl::RandomCartesian::generateCoordsRandomSphericalWalk(std::vector<glm::vec3> &oxyz,const std::vector<glm::vec3> &pxyz,float step,RandomReal &rnGen) {
+    oxyz.clear();
+    oxyz = ixyz;
+
+    //std::cout << "TRANSFORM" << std::endl;
+    m_tranformviaidx(oxyz,rnGen);
+
+    float theta,Z,R;
+    //std::cout << "RANDOMIZE" << std::endl;
+    for (unsigned i = 0; i < oxyz.size(); ++i) {
+        // Compute a random vector
+        rnGen.setRandomRange(-1.0f,1.0f);
+        rnGen.getRandom(Z);
+
+        rnGen.setRandomRange(0.0f,2.0f * M_PI);
+        rnGen.getRandom(theta);
+
+        rnGen.setRandomRange(0.0,irnd[i]);
+        rnGen.getRandom(R);
+
+        float x ( sqrt(1.0f-Z*Z) * cos(theta) );
+        float y ( sqrt(1.0f-Z*Z) * sin(theta) );
+        float z ( Z );
+
+        glm::vec3 Rvec( R * glm::normalize( glm::vec3(x,y,z) ) );
+
+        oxyz[i] = oxyz[i] + Rvec;
+    }
+    //std::cout << "END" << std::endl;
+};*/
+
 // Generate a set of boxed random coordinates
 void itrnl::RandomCartesian::generateRandomCoordsBox(std::vector<glm::vec3> &oxyz,RandomReal &rnGen) {
     oxyz.clear();
@@ -853,8 +902,10 @@ void itrnl::RandomCartesian::m_parsecrdsin(const std::string &crdsin) {
 
             //std::cout << ityp.back() << " " <<  otyp.back() << " [" << ixyz.back().x << "," << ixyz.back().y << "," << ixyz.back().z << "] Rand: " << irnd.back() << std::endl;
         }
-    } else {
-        cout << "No coordinates matching pattern found in menu script file!" << endl;
+    }
+
+    if ( ityp.empty() ) {
+        FatalError(string("Error: No coordinates or wrong syntax detected in coordinates input."));
     }
 };
 
@@ -1201,8 +1252,10 @@ void itrnl::ScanCartesian::m_parsecrdsin(const std::string &crdsin) {
 
             //std::cout << ityp.back() << " " <<  otyp.back() << " [" << ixyz.back().x << "," << ixyz.back().y << "," << ixyz.back().z << "] Rand: " << irnd.back() << std::endl;
         }
-    } else {
-        cout << "No coordinates matching pattern found in menu script file!" << endl;
+    }
+
+    if ( ityp.empty() ) {
+        FatalError(string("Error: No coordinates or wrong syntax detected in coordinates input."));
     }
 };
 
