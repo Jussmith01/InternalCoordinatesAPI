@@ -589,6 +589,61 @@ public:
     };
 };
 
+/*---------Random Cartesian Class------------
+
+
+----------------------------------------------*/
+class RandomStructureNormalMode {
+
+    std::vector<glm::vec3> ixyz; // Initial Cartesian Coords
+    std::vector<std::vector<glm::vec3>> nm; // Normal modes
+    std::vector<float> fc; // Force constant
+
+    std::vector<std::string> ityp; // Input Types
+    std::vector<std::string> otyp; // Output types
+
+    std::vector<float> masses; // Input Types
+
+    // Parse Coords Input
+    void m_parsecrdsin(const std::string &crdsin);
+
+    // Parse Connectivity Input
+    void m_parsenormalmodes(const std::string &normmodein);
+
+
+public:
+
+    // Class index constructor
+    RandomStructureNormalMode (const std::string crdsin,const std::string normmodein);
+
+    // Generate a set of spherical random coordinates
+    void generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator);
+
+    unsigned getNa () {return ixyz.size();};
+
+    float getAtomicMass(std::string typ);
+
+    // Get the input coords
+    std::vector<glm::vec3> getixyz() {
+        return ixyz;
+    };
+
+    // Set the input coords
+    void setixyz(std::vector<glm::vec3> & xyz) {
+        ixyz = xyz;
+    };
+
+    // Get the input types
+    std::vector<std::string> getitype() {
+        return ityp;
+    };
+
+    // Get the output types
+    std::vector<std::string> getotype() {
+        return otyp;
+    };
+};
+
 /*---------IC Distance Matrix Class------------
 
 

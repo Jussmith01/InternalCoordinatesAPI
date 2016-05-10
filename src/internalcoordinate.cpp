@@ -21,6 +21,8 @@
 #include "internalcoordinate.h"
 
 #define Rad 180.0/M_PI; /*radians to degrees*/
+#define AngtBohr 1.889725989;
+#define gFtoAu 121.37804 / AngtBohr
 
 /*----------------------------------------------
                  Fatal Error
@@ -1200,6 +1202,113 @@ void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,std::mt
             oxyz[didx] = a + apara + oxyz[ati2];
         }
     }
+};
+
+/** --------------------------------------------
+
+              Normal Mode Class
+
+---------------------------------------------- **/
+itrnl::RandomStructureNormalMode::RandomStructureNormalMode (const std::string crdsin,const std::string normmodein) {
+    m_parsecrdsin(crdsin);
+    m_parsenormalmodes(normmodein);
+};
+
+/** PRIVATE MEMBER FUNCTIONS **/
+void itrnl::RandomStructureNormalMode::m_parsenormalmodes(const std::string &normmodein) {
+    using namespace std;
+
+    cout << "TEST1!!!" << endl;
+
+    regex pattern_norms("FRCCNST=(\\d+\\.\\d+)\\s\\{([^}]+)");
+    regex pattern_comps("([-]?\\d+\\.\\d+)\\s+([-]?\\d+\\.\\d+)\\s+([-]?\\d+\\.\\d+)\\n");
+
+    cout << "TEST2!!!" << endl;
+
+    nm.resize(getNa());
+
+    if (regex_search(normmodein,pattern_norms)) {
+        sregex_iterator items(normmodein.begin(),normmodein.end(),pattern_norms);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            //Do stuff with items
+            fc.push_back( atof(items->str(1).c_str()) );
+
+            string norms(items->str(2));
+            sregex_iterator comps(norms.begin(),norms.end(),pattern_comps);
+            sregex_iterator end;
+
+            //cout << "FC: " << fc.back() << endl;
+
+            unsigned cntr(0);
+            for (; comps != end; ++comps) {
+                nm[cntr].push_back( glm::vec3( atof(comps->str(1).c_str())
+                                                ,atof(comps->str(2).c_str())
+                                                ,atof(comps->str(3).c_str()) ) );
+
+                //cout << "VEC ATOM (" << cntr << "): " << nm[cntr].back().x << ","  << nm[cntr].back().y << ","  << nm[cntr].back().z << endl;
+                ++cntr;
+            }
+        }
+    }
+};
+
+void itrnl::RandomStructureNormalMode::m_parsecrdsin(const std::string &crdsin) {
+    using namespace std;
+
+    //std::cout << "-------------------------------------\n";
+    //std::cout << crdsin << std::endl;
+    //std::cout << "-------------------------------------\n";
+
+    regex pattern_crds("\\s*([A-Z][a-z]*)\\s+([A-Z][a-z]*\\d*)\\s+([-,+]*\\d+\\.\\d+)\\s+([-,+]*\\d+\\.\\d+)\\s+([-,+]*\\d+\\.\\d+)");
+
+    if (regex_search(crdsin,pattern_crds)) {
+        sregex_iterator items(crdsin.begin(),crdsin.end(),pattern_crds);
+        sregex_iterator end;
+        for (; items != end; ++items) {
+            //Do stuff with items
+            ityp.push_back( items->str(1) );
+            otyp.push_back( items->str(2) );
+            ixyz.push_back( glm::vec3( atof(items->str(3).c_str())
+                                       ,atof(items->str(4).c_str())
+                                       ,atof(items->str(5).c_str()) ) );
+
+            //std::cout << ityp.back() << " " <<  otyp.back() << " [" << ixyz.back().x << "," << ixyz.back().y << "," << ixyz.back().z << "]" << std::endl;
+        }
+    }
+
+    if ( ityp.empty() ) {
+        FatalError(string("Error: No coordinates or wrong syntax detected in coordinates input."));
+    }
+
+    for (auto &i : ityp) {
+        masses.push_back(getAtomicMass(i));
+    }
+};
+
+/** PUBLIC MEMBER FUNCTIONS **/
+float itrnl::RandomStructureNormalMode::getAtomicMass(std::string typ) {
+        float mass;
+
+        if        (typ.compare("H")==0) {
+            mass = 1.0079;
+        } else if (typ.compare("C")==0) {
+            mass = 12.0107;
+        } else if (typ.compare("N")==0) {
+            mass = 14.0067;
+        } else if (typ.compare("O")==0) {
+            mass = 15.9994;
+        } else {
+            FatalError(std::string("ERROR: Atom type mass is not currently defined."));
+        }
+
+        return mass;
+};
+
+void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator) {
+
+
+    oxyz = ixyz;
 };
 
 /** --------------------------------------------
