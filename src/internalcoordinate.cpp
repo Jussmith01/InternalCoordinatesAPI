@@ -22,7 +22,7 @@
 
 #define Rad 180.0/M_PI; /*radians to degrees*/
 #define AngtBohr 1.889725989;
-#define gFtoAu 121.37804 / AngtBohr
+#define gFtoAu 121.37804 / (1.0e-3 * AngtBohr)
 
 /*----------------------------------------------
                  Fatal Error
