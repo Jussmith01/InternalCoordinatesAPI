@@ -20,9 +20,11 @@
 // Namespace header
 #include "internalcoordinate.h"
 
-#define Rad 180.0/M_PI; /*radians to degrees*/
-#define AngtBohr 1.889725989;
-#define gFtoAu 121.37804 / 1.0e-3
+#define Rad 180.0/M_PI /*radians to degrees*/
+#define AngtBohr 1.889725989
+#define BohrtAng 0.529177208
+#define gFtoAu 121.378047799
+#define TKTau 3.158e-5 /*convert kelvin to T a.u.*/
 
 /*----------------------------------------------
                  Fatal Error
@@ -1242,7 +1244,7 @@ void itrnl::RandomStructureNormalMode::m_parsenormalmodes(const std::string &nor
 
             unsigned cntr(0);
             for (; comps != end; ++comps) {
-                float ism( 1.0f / sqrt(masses[cntr]));
+                float ism( 1.0f / sqrt(m_getAtomicMass(ityp[cntr])) );
                 nm[cntr].push_back(glm::vec3( atof(comps->str(1).c_str()) * ism
                                              ,atof(comps->str(2).c_str()) * ism
                                              ,atof(comps->str(3).c_str()) * ism ));
@@ -1281,14 +1283,9 @@ void itrnl::RandomStructureNormalMode::m_parsecrdsin(const std::string &crdsin) 
     if ( ityp.empty() ) {
         FatalError(string("Error: No coordinates or wrong syntax detected in coordinates input."));
     }
-
-    for (auto &i : ityp) {
-        masses.push_back(getAtomicMass(i));
-    }
 };
 
-/** PUBLIC MEMBER FUNCTIONS **/
-float itrnl::RandomStructureNormalMode::getAtomicMass(std::string typ) {
+float itrnl::RandomStructureNormalMode::m_getAtomicMass(std::string typ) {
         float mass;
 
         if        (typ.compare("H")==0) {
@@ -1306,6 +1303,7 @@ float itrnl::RandomStructureNormalMode::getAtomicMass(std::string typ) {
         return mass;
 };
 
+/** PUBLIC MEMBER FUNCTIONS **/
 void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator) {
     using namespace std;
 
@@ -1314,17 +1312,18 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
     oxyz.clear();
     oxyz.resize(Na,glm::vec3(0.0f,0.0f,0.0f));
 
-    for (unsigned i = 0; i < fc.size(); ++i) {
-        float K(fc[i] * gFtoAu);
+    unsigned nf (fc.size());
 
-        float Rmax(sqrt((3.0f*temp)/K));
+    for (unsigned i = 0; i < nf; ++i) {
+        float K(fc[i] * gFtoAu * 1000.0f * BohrtAng);
+        //float K(0.1 * gFtoAu * 1000.0f * BohrtAng);
+
+        float Rmax(sqrt((3.0f*temp)/(K * static_cast<float>(Na))));
         uniform_real_distribution<float> distribution(-Rmax,Rmax);
         float rval ( distribution(rgenerator) );
 
-        //cout << "Rval: " << rval << endl;
-
         for (unsigned j = 0; j < Na; ++j) {
-            oxyz[j] += rval * nm[j][i];
+            oxyz[j] += static_cast<float>( AngtBohr * rval ) * nm[j][i];
         }
     }
 

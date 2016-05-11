@@ -602,26 +602,24 @@ class RandomStructureNormalMode {
     std::vector<std::string> ityp; // Input Types
     std::vector<std::string> otyp; // Output types
 
-    std::vector<float> masses; // Input Types
-
     // Parse Coords Input
     void m_parsecrdsin(const std::string &crdsin);
 
     // Parse Connectivity Input
     void m_parsenormalmodes(const std::string &normmodein);
 
+    float m_getAtomicMass(std::string typ);
 
 public:
 
     // Class index constructor
-    RandomStructureNormalMode (const std::string crdsin,const std::string normmodein);
+    RandomStructureNormalMode ( const std::string crdsin,const std::string normmodein );
 
     // Generate a set of spherical random coordinates
     void generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator);
 
     unsigned getNa () {return ixyz.size();};
 
-    float getAtomicMass(std::string typ);
 
     // Get the input coords
     std::vector<glm::vec3> getixyz() {
