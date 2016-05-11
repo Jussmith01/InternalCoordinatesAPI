@@ -22,7 +22,7 @@
 
 #define Rad 180.0/M_PI; /*radians to degrees*/
 #define AngtBohr 1.889725989;
-#define gFtoAu 121.37804 / (1.0e-3 * AngtBohr)
+#define gFtoAu 121.37804 / 1.0e-3
 
 /*----------------------------------------------
                  Fatal Error
@@ -1242,9 +1242,10 @@ void itrnl::RandomStructureNormalMode::m_parsenormalmodes(const std::string &nor
 
             unsigned cntr(0);
             for (; comps != end; ++comps) {
-                nm[cntr].push_back( glm::vec3( atof(comps->str(1).c_str())
-                                                ,atof(comps->str(2).c_str())
-                                                ,atof(comps->str(3).c_str()) ) );
+                float ism( 1.0f / sqrt(masses[cntr]));
+                nm[cntr].push_back(glm::vec3( atof(comps->str(1).c_str()) * ism
+                                             ,atof(comps->str(2).c_str()) * ism
+                                             ,atof(comps->str(3).c_str()) * ism ));
 
                 //cout << "VEC ATOM (" << cntr << "): " << nm[cntr].back().x << ","  << nm[cntr].back().y << ","  << nm[cntr].back().z << endl;
                 ++cntr;
@@ -1306,9 +1307,30 @@ float itrnl::RandomStructureNormalMode::getAtomicMass(std::string typ) {
 };
 
 void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator) {
+    using namespace std;
 
+    unsigned Na (getNa());
 
-    oxyz = ixyz;
+    oxyz.clear();
+    oxyz.resize(Na,glm::vec3(0.0f,0.0f,0.0f));
+
+    for (unsigned i = 0; i < fc.size(); ++i) {
+        float K(fc[i] * gFtoAu);
+
+        float Rmax(sqrt((3.0f*temp)/K));
+        uniform_real_distribution<float> distribution(-Rmax,Rmax);
+        float rval ( distribution(rgenerator) );
+
+        //cout << "Rval: " << rval << endl;
+
+        for (unsigned j = 0; j < Na; ++j) {
+            oxyz[j] += rval * nm[j][i];
+        }
+    }
+
+    for (unsigned j = 0; j < Na; ++j) {
+        oxyz[j] = ixyz[j] + oxyz[j];
+    }
 };
 
 /** --------------------------------------------
