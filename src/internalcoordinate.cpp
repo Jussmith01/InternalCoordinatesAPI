@@ -1220,12 +1220,12 @@ itrnl::RandomStructureNormalMode::RandomStructureNormalMode (const std::string c
 void itrnl::RandomStructureNormalMode::m_parsenormalmodes(const std::string &normmodein) {
     using namespace std;
 
-    cout << "TEST1!!!" << endl;
+    //cout << "TEST1!!!" << endl;
 
     regex pattern_norms("FRCCNST=(\\d+\\.\\d+)\\s\\{([^}]+)");
     regex pattern_comps("([-]?\\d+\\.\\d+)\\s+([-]?\\d+\\.\\d+)\\s+([-]?\\d+\\.\\d+)\\n");
 
-    cout << "TEST2!!!" << endl;
+    //cout << "TEST2!!!" << endl;
 
     nm.resize(getNa());
 
@@ -1315,8 +1315,9 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
     unsigned nf (fc.size());
 
     for (unsigned i = 0; i < nf; ++i) {
-        //float K( fc[i] * gFtoAu * 1000.0f * BohrtAng );
-        float K(0.5 * gFtoAu * 1000.0f * BohrtAng);
+        float K( fc[i] * gFtoAu * 1000.0f * BohrtAng );
+        //float tfc(std::min(fc[i],0.5f));
+        //float K(tfc * gFtoAu * 1000.0f * BohrtAng);
 
         float Rmax(sqrt((3.0f*temp)/(K * static_cast<float>(Na))));
         uniform_real_distribution<float> distribution(-Rmax,Rmax);
