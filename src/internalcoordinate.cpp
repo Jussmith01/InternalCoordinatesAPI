@@ -1289,13 +1289,13 @@ float itrnl::RandomStructureNormalMode::m_getAtomicMass(std::string typ) {
         float mass;
 
         if        (typ.compare("H")==0) {
-            mass = 1.0079;
+            mass = 1.0;//1.0079;
         } else if (typ.compare("C")==0) {
-            mass = 12.0107;
+            mass = 1.0;//12.0107;
         } else if (typ.compare("N")==0) {
-            mass = 14.0067;
+            mass = 1.0;//14.0067;
         } else if (typ.compare("O")==0) {
-            mass = 15.9994;
+            mass = 1.0;//15.9994;
         } else {
             FatalError(std::string("ERROR: Atom type mass is not currently defined."));
         }
@@ -1315,8 +1315,8 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
     unsigned nf (fc.size());
 
     for (unsigned i = 0; i < nf; ++i) {
-        float K(fc[i] * gFtoAu * 1000.0f * BohrtAng);
-        //float K(0.1 * gFtoAu * 1000.0f * BohrtAng);
+        //float K( fc[i] * gFtoAu * 1000.0f * BohrtAng );
+        float K(0.5 * gFtoAu * 1000.0f * BohrtAng);
 
         float Rmax(sqrt((3.0f*temp)/(K * static_cast<float>(Na))));
         uniform_real_distribution<float> distribution(-Rmax,Rmax);
