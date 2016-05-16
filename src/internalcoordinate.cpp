@@ -1315,9 +1315,9 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
     unsigned nf (fc.size());
 
     for (unsigned i = 0; i < nf; ++i) {
-        float K( fc[i] * gFtoAu * 1000.0f * BohrtAng );
-        //float tfc(std::min(fc[i],0.5f));
-        //float K(tfc * gFtoAu * 1000.0f * BohrtAng);
+        //float K( fc[i] * gFtoAu * 1000.0f * BohrtAng );
+        float tfc(std::min(fc[i],0.5f));
+        float K(tfc * gFtoAu * 1000.0f * BohrtAng);
 
         float Rmax(sqrt((3.0f*temp)/(K * static_cast<float>(Na))));
         uniform_real_distribution<float> distribution(-Rmax,Rmax);
