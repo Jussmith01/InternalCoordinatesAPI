@@ -23,7 +23,10 @@
 #define Rad 180.0/M_PI /*radians to degrees*/
 #define AngtBohr 1.889725989
 #define BohrtAng 0.529177208
-#define gFtoAu 121.378047799
+#define mDynetoAu 121.378047799 * 1000.0 * AngtBohr
+#define mDynetoMet 1.0e-5 * 1.0e3 * 1.0e10
+#define Kb 1.38064852e-23
+#define MtoA 1.0e10
 #define TKTau 3.158e-5 /*convert kelvin to T a.u.*/
 
 /*----------------------------------------------
@@ -1319,12 +1322,13 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
         //float tfc(std::min(fc[i],0.5f));
         //float K(tfc * gFtoAu * 1000.0f * BohrtAng);
 
-        float Rmax(sqrt((3.0f*temp)/(K * static_cast<float>(Na))));
+        float Rmax( AngtBohr * sqrt((3.0f*temp)/(K * static_cast<float>(Na))) );
+
         uniform_real_distribution<float> distribution(-Rmax,Rmax);
         float rval ( distribution(rgenerator) );
 
         for (unsigned j = 0; j < Na; ++j) {
-            oxyz[j] += static_cast<float>( AngtBohr * rval ) * nm[j][i];
+            oxyz[j] += static_cast<float>( rval ) * nm[j][i];
         }
     }
 
