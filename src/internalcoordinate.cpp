@@ -24,7 +24,7 @@
 #define AngtBohr 1.889725989
 #define BohrtAng 0.529177208
 #define mDynetoAu 121.378047799 * 1000.0 * AngtBohr
-#define mDynetoMet 1.0e-5 * 1.0e3 * 1.0e10
+#define mDynetoMet 1.0e-5 * 1.0e-3 * 1.0e10
 #define Kb 1.38064852e-23
 #define MtoA 1.0e10
 #define TKTau 3.158e-5 /*convert kelvin to T a.u.*/
@@ -1247,10 +1247,9 @@ void itrnl::RandomStructureNormalMode::m_parsenormalmodes(const std::string &nor
 
             unsigned cntr(0);
             for (; comps != end; ++comps) {
-                float ism( 1.0f / sqrt(m_getAtomicMass(ityp[cntr])) );
-                nm[cntr].push_back(glm::vec3( atof(comps->str(1).c_str()) * ism
-                                             ,atof(comps->str(2).c_str()) * ism
-                                             ,atof(comps->str(3).c_str()) * ism ));
+                nm[cntr].push_back(glm::vec3( atof(comps->str(1).c_str())
+                                             ,atof(comps->str(2).c_str())
+                                             ,atof(comps->str(3).c_str())));
 
                 //cout << "VEC ATOM (" << cntr << "): " << nm[cntr].back().x << ","  << nm[cntr].back().y << ","  << nm[cntr].back().z << endl;
                 ++cntr;
@@ -1288,24 +1287,6 @@ void itrnl::RandomStructureNormalMode::m_parsecrdsin(const std::string &crdsin) 
     }
 };
 
-float itrnl::RandomStructureNormalMode::m_getAtomicMass(std::string typ) {
-        float mass;
-
-        if        (typ.compare("H")==0) {
-            mass = 1.0;//1.0079;
-        } else if (typ.compare("C")==0) {
-            mass = 1.0;//12.0107;
-        } else if (typ.compare("N")==0) {
-            mass = 1.0;//14.0067;
-        } else if (typ.compare("O")==0) {
-            mass = 1.0;//15.9994;
-        } else {
-            FatalError(std::string("ERROR: Atom type mass is not currently defined."));
-        }
-
-        return mass;
-};
-
 /** PUBLIC MEMBER FUNCTIONS **/
 void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator) {
     using namespace std;
@@ -1315,17 +1296,21 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
     oxyz.clear();
     oxyz.resize(Na,glm::vec3(0.0f,0.0f,0.0f));
 
-    unsigned nf (fc.size());
+    unsigned Nf (fc.size());
 
-    for (unsigned i = 0; i < nf; ++i) {
-        float K( fc[i] * gFtoAu * 1000.0f * BohrtAng );
-        //float tfc(std::min(fc[i],0.5f));
-        //float K(tfc * gFtoAu * 1000.0f * BohrtAng);
+    float aef ( static_cast<float>(Na) / static_cast<float>(Nf) ); // Average Energy per mode Factor
 
-        float Rmax( AngtBohr * sqrt((3.0f*temp)/(K * static_cast<float>(Na))) );
+    ///bernoulli_distribution distribution(0.5f);
+    ///float sw(static_cast<float>(distribution(rgenerator)));
+
+    for (unsigned i = 0; i < Nf; ++i) {
+        float K( fc[i] * mDynetoMet );
+        float Rmax( MtoA * sqrt( aef * ((3.0f * Kb * temp)/K) ) );
 
         uniform_real_distribution<float> distribution(-Rmax,Rmax);
         float rval ( distribution(rgenerator) );
+
+        ///float rval (Rmax*sw);
 
         for (unsigned j = 0; j < Na; ++j) {
             oxyz[j] += static_cast<float>( rval ) * nm[j][i];

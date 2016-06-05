@@ -608,8 +608,6 @@ class RandomStructureNormalMode {
     // Parse Connectivity Input
     void m_parsenormalmodes(const std::string &normmodein);
 
-    float m_getAtomicMass(std::string typ);
-
 public:
 
     // Class index constructor
