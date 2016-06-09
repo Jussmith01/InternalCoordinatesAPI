@@ -28,6 +28,7 @@
 #define Kb 1.38064852e-23
 #define MtoA 1.0e10
 #define TKTau 3.158e-5 /*convert kelvin to T a.u.*/
+#define JtoHa 2.293710449e17 /*Convert j to Ha*/
 
 /*----------------------------------------------
                  Fatal Error
@@ -1180,7 +1181,7 @@ void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,std::mt
         /* Compute Initial Angle */
         float iang ( glm::degrees( glm::angle(glm::normalize(ap1perp),glm::normalize(ap2perp)) ) );
 
-       //float rval;
+        //float rval;
         //rnGen.setRandomRange(-d->ds,d->df); // Set range
         //rnGen.getRandom(rval); // Get random value in range
 
@@ -1214,7 +1215,7 @@ void itrnl::RandomCartesian::m_dhltransform(std::vector<glm::vec3> &oxyz,std::mt
               Normal Mode Class
 
 ---------------------------------------------- **/
-itrnl::RandomStructureNormalMode::RandomStructureNormalMode (const std::string crdsin,const std::string normmodein) {
+itrnl::RandomStructureNormalMode::RandomStructureNormalMode (const std::string crdsin,const std::string normmodein) : peout("harmonicenergies.dat") {
     m_parsecrdsin(crdsin);
     m_parsenormalmodes(normmodein);
 };
@@ -1248,8 +1249,8 @@ void itrnl::RandomStructureNormalMode::m_parsenormalmodes(const std::string &nor
             unsigned cntr(0);
             for (; comps != end; ++comps) {
                 nm[cntr].push_back(glm::vec3( atof(comps->str(1).c_str())
-                                             ,atof(comps->str(2).c_str())
-                                             ,atof(comps->str(3).c_str())));
+                                              ,atof(comps->str(2).c_str())
+                                              ,atof(comps->str(3).c_str())));
 
                 //cout << "VEC ATOM (" << cntr << "): " << nm[cntr].back().x << ","  << nm[cntr].back().y << ","  << nm[cntr].back().z << endl;
                 ++cntr;
@@ -1287,6 +1288,10 @@ void itrnl::RandomStructureNormalMode::m_parsecrdsin(const std::string &crdsin) 
     }
 };
 
+float harmonicPotential (const float K,const float R) {
+    return 0.5f * K * R * R;
+};
+
 /** PUBLIC MEMBER FUNCTIONS **/
 void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator) {
     using namespace std;
@@ -1298,29 +1303,144 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
 
     unsigned Nf (fc.size());
 
-    float aef ( static_cast<float>(Na) / static_cast<float>(Nf) ); // Average Energy per mode Factor
+    vector<float> dist;
 
-    ///bernoulli_distribution distribution(0.5f);
-    ///float sw(static_cast<float>(distribution(rgenerator)));
+    uniform_real_distribution<float> distribution(0.0f,1.0f);
+    float norm = distribution(rgenerator);
 
+    //std::cout << "NORM: " << norm << endl;
+
+    dist.push_back(0.0f);
+    for (unsigned i = 0; i < Nf-1; ++i) {
+        dist.push_back( norm * distribution(rgenerator) );
+    }
+    dist.push_back(norm);
+
+    sort(dist.begin(),dist.end());
+
+    //ofstream ("harmonicenergies.dat");
+    //float tpot(0.0f);
     for (unsigned i = 0; i < Nf; ++i) {
         float K( fc[i] * mDynetoMet );
-        float Rmax( MtoA * sqrt( aef * ((3.0f * Kb * temp)/K) ) );
+        //cout << "FACT: " <<  dist[i+1] - dist[i] << endl;
+        float R(  MtoA * sqrt( (3.0f * (dist[i+1] - dist[i]) * static_cast<float>(Na) * Kb * temp)/(K) ) );
+        float sign (distribution(rgenerator));
+        sign = (sign < 0.5f) ? -1.0f : 1.0f;
 
-        uniform_real_distribution<float> distribution(-Rmax,Rmax);
-        float rval ( distribution(rgenerator) );
-
-        ///float rval (Rmax*sw);
+        //uniform_real_distribution<float> distribution2(-Rmax,Rmax);
+        //float rval ( distribution2(rgenerator) );
 
         for (unsigned j = 0; j < Na; ++j) {
-            oxyz[j] += static_cast<float>( rval ) * nm[j][i];
+            oxyz[j] += sign * R * nm[j][i];
         }
+
+        //float pem (JtoHa * harmonicPotential(K,R/MtoA));
+        //tpot += pem;
+        //peout << pem << "," << R << ",";
     }
+
+    //cout << "tpot: " << tpot << " theo: " << JtoHa * norm * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << " : " << JtoHa * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << endl;
+
+    //peout << tpot << "," << JtoHa * norm * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << "," << endl;
 
     for (unsigned j = 0; j < Na; ++j) {
         oxyz[j] = ixyz[j] + oxyz[j];
     }
 };
+
+/*void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator) {
+    using namespace std;
+
+    unsigned Na (getNa());
+
+    oxyz.clear();
+    oxyz.resize(Na,glm::vec3(0.0f,0.0f,0.0f));
+
+    unsigned Nf (fc.size());
+
+    vector<float> dist;
+
+    uniform_real_distribution<float> distribution(0.0f,1.0f);
+
+    dist.push_back(0.0f);
+    for (unsigned i = 0; i < Nf-1; ++i) {
+        dist.push_back(  distribution(rgenerator) );
+    }
+    dist.push_back(1.0f);
+
+    sort(dist.begin(),dist.end());
+
+    //ofstream ("harmonicenergies.dat");
+    float tpot(0.0f);
+    for (unsigned i = 0; i < Nf; ++i) {
+        float K( fc[i] * mDynetoMet );
+        cout << "FACT: " <<  dist[i+1] - dist[i] << endl;
+        float Rmax( MtoA * sqrt( (3.0f  * (dist[i+1] - dist[i]) * static_cast<float>(Na) * Kb * temp)/(K) ) );
+
+        uniform_real_distribution<float> distribution(-Rmax,Rmax);
+
+        float R (distribution(rgenerator));
+
+
+        //uniform_real_distribution<float> distribution2(-Rmax,Rmax);
+        //float rval ( distribution2(rgenerator) );
+
+        for (unsigned j = 0; j < Na; ++j) {
+            oxyz[j] += R * nm[j][i];
+        }
+
+        float pem (JtoHa * harmonicPotential(K,R/MtoA));
+        tpot += pem;
+        peout << pem << "," << R << ",";
+    }
+
+    cout << "tpot: " << tpot << " theo: " << JtoHa * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << endl;
+
+    peout << tpot << "," << JtoHa * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << "," << endl;
+
+    for (unsigned j = 0; j < Na; ++j) {
+        oxyz[j] = ixyz[j] + oxyz[j];
+    }
+};*/
+
+/*void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator) {
+    using namespace std;
+
+    unsigned Na (getNa());
+    unsigned Nf (fc.size());
+
+    float tpot(0.0f);
+
+    stringstream ss;
+    oxyz.clear();
+    oxyz.resize(Na,glm::vec3(0.0f,0.0f,0.0f));
+    //std::cout << "NORM: " << norm << endl;
+
+    //ofstream ("harmonicenergies.dat");
+    for (unsigned i = 0; i < Nf; ++i) {
+        float K( fc[i] * mDynetoMet );
+        float Rmax( MtoA * sqrt( (3.0f  * static_cast<float>(Na) * Kb * temp)/(K) ) );
+        uniform_real_distribution<float> distribution(-Rmax,Rmax);
+
+        float R (distribution(rgenerator));
+
+        for (unsigned j = 0; j < Na; ++j) {
+            oxyz[j] += R * nm[j][i];
+        }
+
+        float pem (JtoHa * harmonicPotential(K,R/MtoA));
+        tpot += pem;
+        ss << pem << "," << R << ",";
+    }
+
+    cout << "tpot: " << tpot << " theo max: " << JtoHa * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << endl;
+
+    peout << ss.str() << tpot << "," << JtoHa * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << "," << endl;
+
+    for (unsigned j = 0; j < Na; ++j) {
+        oxyz[j] = ixyz[j] + oxyz[j];
+    }
+};*/
 
 /** --------------------------------------------
 

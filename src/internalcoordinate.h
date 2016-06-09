@@ -602,6 +602,8 @@ class RandomStructureNormalMode {
     std::vector<std::string> ityp; // Input Types
     std::vector<std::string> otyp; // Output types
 
+    std::ofstream peout;
+
     // Parse Coords Input
     void m_parsecrdsin(const std::string &crdsin);
 
@@ -612,6 +614,8 @@ public:
 
     // Class index constructor
     RandomStructureNormalMode ( const std::string crdsin,const std::string normmodein );
+
+    ~RandomStructureNormalMode () {peout.close();};
 
     // Generate a set of spherical random coordinates
     void generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator);
