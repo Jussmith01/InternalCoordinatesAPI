@@ -1226,8 +1226,10 @@ void itrnl::RandomStructureNormalMode::m_parsenormalmodes(const std::string &nor
 
     //cout << "TEST1!!!" << endl;
 
-    regex pattern_norms("FRCCNST=(\\d+\\.\\d+)\\s\\{([^}]+)");
-    regex pattern_comps("([-]?\\d+\\.\\d+)\\s+([-]?\\d+\\.\\d+)\\s+([-]?\\d+\\.\\d+)\\n");
+    //regex pattern_norms("FRCCNST=(\\d+\\.\\d+)\\s\\{([^}]+)");
+    regex pattern_norms("FRCCNST=(\\d+\\.\\d+e[-+]\\d+)\\s\\{([^}]+)");
+    //regex pattern_comps("([-]?\\d+\\.\\d+)\\s+([-]?\\d+\\.\\d+)\\s+([-]?\\d+\\.\\d+)\\n");
+    regex pattern_comps("([-]?\\d+\\.\\d+e[-+]\\d+)\\s+([-]?\\d+\\.\\d+e[-+]\\d+)\\s+([-]?\\d+\\.\\d+e[-+]\\d+)\\s*\\n");
 
     //cout << "TEST2!!!" << endl;
 
@@ -1305,39 +1307,64 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
 
     vector<float> dist;
 
-    uniform_real_distribution<float> distribution(0.0f,1.0f);
-    float norm = distribution(rgenerator);
+    uniform_real_distribution<float> distfloat(0.0f,1.0f);
+    bernoulli_distribution            distbern (0.5f);
+
+    float norm = distfloat(rgenerator);
 
     //std::cout << "NORM: " << norm << endl;
 
     dist.push_back(0.0f);
     for (unsigned i = 0; i < Nf-1; ++i) {
-        dist.push_back( norm * distribution(rgenerator) );
+        dist.push_back( norm * distfloat(rgenerator) );
+        //dist.push_back( norm );
     }
     dist.push_back(norm);
 
     sort(dist.begin(),dist.end());
 
-    //ofstream ("harmonicenergies.dat");
-    //float tpot(0.0f);
-    for (unsigned i = 0; i < Nf; ++i) {
-        float K( fc[i] * mDynetoMet );
-        //cout << "FACT: " <<  dist[i+1] - dist[i] << endl;
-        float R(  MtoA * sqrt( (3.0f * (dist[i+1] - dist[i]) * static_cast<float>(Na) * Kb * temp)/(K) ) );
-        float sign (distribution(rgenerator));
-        sign = (sign < 0.5f) ? -1.0f : 1.0f;
 
-        //uniform_real_distribution<float> distribution2(-Rmax,Rmax);
+
+    //ofstream peout("harmonicenergies.dat");
+    //float tpot(0.0f);
+    //cout << " SPLIT: " << norm << " ";
+    //float sum(0.0f);
+    for (unsigned i = 0; i < Nf; ++i) {
+
+        float sign ( distbern(rgenerator) ? -1.0f : 1.0f );
+        //cout << "SIGN: " << sign << endl;
+        float Ki( fc[i] * mDynetoMet );
+        //cout << "FACT: " <<  dist[i+1] - dist[i] << endl;
+        float ci( dist[i+1] - dist[i] );
+        //sum += ci;
+        //cout << ci << " ";
+        //peout << ci << ",";
+        float Ri ( MtoA * sqrt( (3.0f * ci * static_cast<float>(Na) * Kb * temp)/(Ki) ) );
+
+        //uniform_real_distribution<float> distribution2(-Rmax,Rmax);r
         //float rval ( distribution2(rgenerator) );
 
         for (unsigned j = 0; j < Na; ++j) {
-            oxyz[j] += sign * R * nm[j][i];
+            oxyz[j] += sign * Ri * nm[j][i];
         }
 
-        //float pem (JtoHa * harmonicPotential(K,R/MtoA));
+        float tvec (0.0);
+        for (unsigned j = 0; j < Na; ++j) {
+            glm::vec3 v3 = sign * Ri * nm[j][i];
+
+            //tvec += glm::length( v3 );
+            tvec += v3.x * v3.x + v3.y * v3.y + v3.z * v3.z;
+        }
+
+        //cout << " tvec: " << sqrt( tvec ) << " Ri: " << abs( Ri ) << endl;
+
+        //float pem (JtoHa * harmonicPotential(Ki,Ri/MtoA));
         //tpot += pem;
-        //peout << pem << "," << R << ",";
+        //peout << Ri << ",";
     }
+    //cout << " : " << sum << endl;
+
+    //peout << norm << "," << endl;
 
     //cout << "tpot: " << tpot << " theo: " << JtoHa * norm * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << " : " << JtoHa * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << endl;
 
@@ -1402,16 +1429,15 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
         oxyz[j] = ixyz[j] + oxyz[j];
     }
 };*/
-
 /*void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec3> &oxyz,float temp,std::mt19937& rgenerator) {
     using namespace std;
 
     unsigned Na (getNa());
     unsigned Nf (fc.size());
 
-    float tpot(0.0f);
+    //float tpot(0.0f);
 
-    stringstream ss;
+    //stringstream ss;
     oxyz.clear();
     oxyz.resize(Na,glm::vec3(0.0f,0.0f,0.0f));
     //std::cout << "NORM: " << norm << endl;
@@ -1419,7 +1445,7 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
     //ofstream ("harmonicenergies.dat");
     for (unsigned i = 0; i < Nf; ++i) {
         float K( fc[i] * mDynetoMet );
-        float Rmax( MtoA * sqrt( (3.0f  * static_cast<float>(Na) * Kb * temp)/(K) ) );
+        float Rmax( MtoA * sqrt( (3.0f  * static_cast<float>(Na) * Kb * temp)/(K * static_cast<float>(Nf)) ) );
         uniform_real_distribution<float> distribution(-Rmax,Rmax);
 
         float R (distribution(rgenerator));
@@ -1428,14 +1454,14 @@ void itrnl::RandomStructureNormalMode::generateRandomCoords(std::vector<glm::vec
             oxyz[j] += R * nm[j][i];
         }
 
-        float pem (JtoHa * harmonicPotential(K,R/MtoA));
-        tpot += pem;
-        ss << pem << "," << R << ",";
+        //float pem (JtoHa * harmonicPotential(K,R/MtoA));
+        //tpot += pem;
+        //ss << pem << "," << R << ",";
     }
 
-    cout << "tpot: " << tpot << " theo max: " << JtoHa * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << endl;
+    //cout << "tpot: " << tpot << " theo max: " << JtoHa * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << endl;
 
-    peout << ss.str() << tpot << "," << JtoHa * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << "," << endl;
+    //peout << ss.str() << tpot << "," << JtoHa * static_cast<float>(Na) * (3.0f * Kb * temp)/(2.0f) << "," << endl;
 
     for (unsigned j = 0; j < Na; ++j) {
         oxyz[j] = ixyz[j] + oxyz[j];
